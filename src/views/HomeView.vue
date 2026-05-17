@@ -1,0 +1,1446 @@
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useGameStore } from '@/stores/game'
+import bgLevel1 from '@/assets/level/1.png'
+import bgLevel2 from '@/assets/level/2.png'
+import bgLevel3 from '@/assets/level/3.png'
+import bgLevel4 from '@/assets/level/4.png'
+import bgLevel5 from '@/assets/level/5.png'
+import characterImg from '@/assets/character.png'
+import iconBlacksmith from '@/assets/blacksmith.png'
+import iconLevelUp from '@/assets/level-up.png'
+import iconSword from '@/assets/sword.png'
+import iconScroll from '@/assets/ancient-scroll.png'
+import iconCoin from '@/assets/coin.png'
+import iconStone from '@/assets/stone.png'
+import imgAnvil from '@/assets/nako.png'
+import imgHammer from '@/assets/molot.png'
+import navChests from '@/assets/nav-item-1.png'
+import navShop from '@/assets/nav-item-2.png'
+import navEvents from '@/assets/nav-item-3.png'
+import navSettings from '@/assets/nav-item-4.png'
+import UpgradesModal from '@/components/UpgradesModal.vue'
+import ItemsModal from '@/components/ItemsModal.vue'
+import OrdersModal from '@/components/OrdersModal.vue'
+import AchievementsModal from '@/components/AchievementsModal.vue'
+import SettingsModal from '@/components/SettingsModal.vue'
+import ForgeView from '@/components/ForgeView.vue'
+import ChestsModal, { type ChestReward } from '@/components/ChestsModal.vue'
+import ChestRewardPopup from '@/components/ChestRewardPopup.vue'
+import ShopModal from '@/components/ShopModal.vue'
+
+const game = useGameStore()
+
+type Tab =
+  | 'main'
+  | 'upgrades'
+  | 'items'
+  | 'orders'
+  | 'shop'
+  | 'achievements'
+  | 'map'
+  | 'chests'
+  | 'settings'
+
+const tab = ref<Tab>('main')
+const menuOpen = ref(false)
+const showUpgrades = ref(false)
+const showItems = ref(false)
+const showOrders = ref(false)
+const showAchievements = ref(false)
+const showSettings = ref(false)
+const showChests = ref(false)
+const showShop = ref(false)
+const chestReward = ref<ChestReward | null>(null)
+
+const route = useRoute()
+const router = useRouter()
+const onForge = computed(() => route.path === '/forge')
+function openForge() {
+  router.push('/forge')
+}
+function closeForge() {
+  router.push('/')
+}
+
+const upgradeCategory = ref<'Кузница' | 'Рабочие' | 'Материалы' | 'Особые'>('Кузница')
+const itemCategory = ref<'Оружие' | 'Броня' | 'Аксессуары'>('Оружие')
+
+const filteredUpgrades = computed(() =>
+  game.upgrades.filter((u) => u.category === upgradeCategory.value),
+)
+const filteredItems = computed(() =>
+  game.items.filter((i) => i.category === itemCategory.value),
+)
+
+function fmt(n: number): string {
+  if (n < 1000) return Math.floor(n).toString()
+  const units = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi']
+  let i = 0
+  let v = n
+  while (v >= 1000 && i < units.length - 1) {
+    v /= 1000
+    i++
+  }
+  return v.toFixed(2) + units[i]
+}
+
+function fmtTime(s: number): string {
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = Math.floor(s % 60)
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+}
+
+let last = performance.now()
+let raf = 0
+let saveTimer = 0
+let nowTimer = 0
+const nowTs = ref(Date.now())
+
+function loop() {
+  const now = performance.now()
+  const dt = (now - last) / 1000
+  last = now
+  game.tick(dt)
+  raf = requestAnimationFrame(loop)
+}
+
+onMounted(() => {
+  game.load()
+  game.refillDailyChest()
+  last = performance.now()
+  raf = requestAnimationFrame(loop)
+  saveTimer = window.setInterval(() => game.save(), 5000)
+  nowTimer = window.setInterval(() => (nowTs.value = Date.now()), 500)
+  window.addEventListener('beforeunload', () => game.save())
+})
+
+onBeforeUnmount(() => {
+  cancelAnimationFrame(raf)
+  clearInterval(saveTimer)
+  clearInterval(nowTimer)
+  game.save()
+})
+
+const goldX2Left = computed(() =>
+  Math.max(0, Math.floor((game.goldX2Until - nowTs.value) / 1000)),
+)
+const autoLeft = computed(() =>
+  Math.max(0, Math.floor((game.autoClickUntil - nowTs.value) / 1000)),
+)
+
+const hasUnopenedChests = computed(() => game.chests.some((c) => c.count > 0))
+
+// Background of the main game viewport — switches with the forge level milestone.
+const forgeBackground = computed(() => {
+  const lvl = game.forgeLevelDisplay
+  if (lvl >= 40) return bgLevel5
+  if (lvl >= 30) return bgLevel4
+  if (lvl >= 20) return bgLevel3
+  if (lvl >= 10) return bgLevel2
+  return bgLevel1
+})
+
+const hasClaimableAchievement = computed(() =>
+  game.achievements.some((a) => {
+    if (a.done) return false
+    let v = 0
+    if (a.metric === 'clicks') v = game.clicks
+    else if (a.metric === 'gold') v = game.totalGoldEarned
+    else if (a.metric === 'crafts') v = game.totalCrafts
+    else if (a.metric === 'forgeLevel') v = game.forgeLevelDisplay
+    else if (a.metric === 'uniqueItems') v = game.items.filter((i) => i.count > 0).length
+    return v >= a.target
+  }),
+)
+
+function itemName(id: string) {
+  return game.items.find((x) => x.id === id)?.name ?? '?'
+}
+function itemCount(id: string) {
+  return game.items.find((x) => x.id === id)?.count ?? 0
+}
+
+// floating click numbers on main screen
+interface FloatHit {
+  id: number
+  text: string
+  crit: boolean
+  x: number
+  y: number
+}
+const floats = ref<FloatHit[]>([])
+const stageEl = ref<HTMLElement | null>(null)
+const anvilEl = ref<HTMLElement | null>(null)
+let floatId = 0
+
+const striking = ref(false)
+let strikeTimer = 0
+
+interface Spark {
+  id: number
+  angle: number
+  dist: number
+  size: number
+  delay: number
+}
+const sparks = ref<Spark[]>([])
+let sparkId = 0
+
+// Combo system: consecutive rapid clicks produce more sparks
+let combo = 0
+let lastStrikeAt = 0
+const COMBO_WINDOW_MS = 700
+const COMBO_CAP = 30
+
+function spawnSparks(count: number) {
+  const burstId = ++sparkId
+  const burst: Spark[] = []
+  // sizes scale a bit with combo as well
+  const sizeBoost = Math.min(combo * 0.15, 6)
+  for (let i = 0; i < count; i++) {
+    burst.push({
+      id: burstId * 1000 + i,
+      angle: -90 + (Math.random() - 0.5) * 160,
+      dist: 55 + Math.random() * 60 + Math.min(combo * 1.5, 40),
+      size: 8 + Math.random() * 6 + sizeBoost,
+      delay: Math.random() * 60,
+    })
+  }
+  sparks.value.push(...burst)
+  setTimeout(() => {
+    const ids = new Set(burst.map((s) => s.id))
+    sparks.value = sparks.value.filter((s) => !ids.has(s.id))
+  }, 700)
+}
+
+function doClick(_ev: MouseEvent) {
+  game.click()
+  // spawn float above the hammer position regardless of click point
+  let x = 200
+  let y = 100
+  if (stageEl.value && anvilEl.value) {
+    const stageRect = stageEl.value.getBoundingClientRect()
+    const anvilRect = anvilEl.value.getBoundingClientRect()
+    x = anvilRect.left + anvilRect.width / 2 - stageRect.left + (Math.random() - 0.5) * 50
+    y = anvilRect.top - stageRect.top + anvilRect.height * 0.35 + (Math.random() - 0.5) * 20
+  }
+  const id = ++floatId
+  floats.value.push({
+    id,
+    text: '+' + fmt(game.lastHit),
+    crit: game.lastCrit,
+    x,
+    y,
+  })
+  setTimeout(() => {
+    floats.value = floats.value.filter((f) => f.id !== id)
+  }, 900)
+  // hammer strike animation
+  striking.value = false
+  clearTimeout(strikeTimer)
+  requestAnimationFrame(() => {
+    striking.value = true
+    strikeTimer = window.setTimeout(() => {
+      striking.value = false
+    }, 280)
+  })
+  // combo logic — keep clicking quickly to stack
+  const now = performance.now()
+  if (now - lastStrikeAt < COMBO_WINDOW_MS) {
+    combo = Math.min(combo + 1, COMBO_CAP)
+  } else {
+    combo = 1
+  }
+  lastStrikeAt = now
+  // sparks count grows with combo; crit adds extra
+  const base = 6 + Math.floor(combo * 0.8)
+  const sparkCount = Math.min(40, base + (game.lastCrit ? 10 : 0))
+  setTimeout(() => spawnSparks(sparkCount), 140)
+}
+
+// forge level progress (display) — XP into current level / XP needed for next level
+const forgeProgress = computed(() => game.forgeXpProgress)
+</script>
+
+<template>
+  <div class="game">
+    <div class="screen">
+      <div class="viewport" :style="{ backgroundImage: `url(${forgeBackground})` }">
+      <!-- Top bar: currencies + burger -->
+      <div class="topbar">
+        <div class="cur gold">
+          <img :src="iconCoin" alt="" class="coin-img" draggable="false" />
+          <div class="cur-info">
+            <div class="cur-value">{{ fmt(game.gold) }}</div>
+            <div class="cur-rate" v-if="game.passivePerSec > 0">+{{ fmt(game.passivePerSec) }}/сек</div>
+          </div>
+        </div>
+        <div class="cur diamonds clickable" @click.stop="showShop = true">
+          <img :src="iconStone" alt="" class="gem-img" draggable="false" />
+          <div class="cur-value">{{ game.diamonds }}</div>
+          <span class="plus">+</span>
+        </div>
+      </div>
+
+      <!-- Side action icons -->
+      <div class="side-right">
+        <button class="side-btn" title="Настройки" @click.stop="showSettings = true">
+          <span class="side-icon"><img :src="navSettings" alt="" draggable="false" /></span>
+          <span class="side-label">Настройки</span>
+        </button>
+        <button class="side-btn" title="Магазин" @click.stop="showShop = true">
+          <span class="side-icon"><img :src="navShop" alt="" draggable="false" /></span>
+          <span class="side-label">Магазин</span>
+        </button>
+        <button class="side-btn" title="События" @click.stop="showAchievements = true">
+          <span class="side-icon">
+            <img :src="navEvents" alt="" draggable="false" />
+            <span v-if="hasClaimableAchievement" class="notify-dot"></span>
+          </span>
+          <span class="side-label">События</span>
+        </button>
+        <button class="side-btn" title="Сундуки" @click.stop="showChests = true">
+          <span class="side-icon">
+            <img :src="navChests" alt="" draggable="false" />
+            <span v-if="hasUnopenedChests" class="notify-dot"></span>
+          </span>
+          <span class="side-label">Сундуки</span>
+        </button>
+      </div>
+
+      <!-- Main play area (only on main tab) -->
+      <div v-if="tab === 'main' && !onForge" class="stage" ref="stageEl" @click="doClick($event)">
+        <img :src="characterImg" alt="Кузнец" class="character" draggable="false" />
+        <div class="anvil-area" ref="anvilEl">
+          <div class="anvil-glow"></div>
+          <img :src="imgAnvil" alt="" class="anvil-img" draggable="false" />
+          <img :src="imgHammer" alt="" class="hammer-img" :class="{ striking }" draggable="false" />
+          <div class="sparks">
+            <div
+              v-for="s in sparks"
+              :key="s.id"
+              class="spark"
+              :style="{
+                '--angle': s.angle + 'deg',
+                '--dist': s.dist + 'px',
+                '--size': s.size + 'px',
+                animationDelay: s.delay + 'ms',
+              }"
+            ></div>
+          </div>
+        </div>
+        <transition-group name="float" tag="div" class="floats">
+          <div
+            v-for="f in floats"
+            :key="f.id"
+            class="float-hit"
+            :class="{ crit: f.crit }"
+            :style="{ left: f.x + 'px', top: f.y + 'px' }"
+          >
+            {{ f.text }}
+            <img :src="iconCoin" alt="" class="float-coin" draggable="false" />
+            <span v-if="f.crit" class="crit-label">КРИТ!</span>
+          </div>
+        </transition-group>
+
+        <div class="badges">
+          <div v-if="goldX2Left > 0" class="badge">x2 золото · {{ goldX2Left }}с</div>
+          <div v-if="autoLeft > 0" class="badge">Авто-клик · {{ autoLeft }}с</div>
+        </div>
+      </div>
+
+      <!-- Forge level bar -->
+      <div v-if="tab === 'main' && !onForge" class="forge-bar">
+        <div class="forge-title">Уровень наковальни {{ game.forgeLevelDisplay }}</div>
+        <div class="forge-progress">
+          <div class="forge-fill" :style="{ width: forgeProgress.pct + '%' }"></div>
+          <div class="forge-text">{{ fmt(forgeProgress.current) }} / {{ fmt(forgeProgress.max) }} XP</div>
+        </div>
+      </div>
+
+      <!-- Other panels (kept for full functionality) -->
+      <main v-if="tab !== 'main'" class="content">
+        <section v-if="tab === 'upgrades'" class="panel">
+          <h2>Улучшения</h2>
+          <div class="subtabs">
+            <button
+              v-for="c in (['Кузница', 'Рабочие', 'Материалы', 'Особые'] as const)"
+              :key="c"
+              :class="{ active: upgradeCategory === c }"
+              @click="upgradeCategory = c"
+            >
+              {{ c }}
+            </button>
+          </div>
+          <ul class="cards">
+            <li v-for="u in filteredUpgrades" :key="u.id" class="card">
+              <div>
+                <div class="card-title">{{ u.name }} <span class="lvl">Ур. {{ u.level }}</span></div>
+                <div class="muted">{{ u.effect }}</div>
+              </div>
+              <button class="buy" :disabled="game.gold < game.upgradeCost(u)" @click="game.buyUpgrade(u.id)">
+                Купить ({{ fmt(game.upgradeCost(u)) }})
+              </button>
+            </li>
+          </ul>
+        </section>
+
+        <section v-if="tab === 'items'" class="panel">
+          <h2>Создание предметов</h2>
+          <div class="subtabs">
+            <button
+              v-for="c in (['Оружие', 'Броня', 'Аксессуары'] as const)"
+              :key="c"
+              :class="{ active: itemCategory === c }"
+              @click="itemCategory = c"
+            >
+              {{ c }}
+            </button>
+          </div>
+          <ul class="cards">
+            <li v-for="it in filteredItems" :key="it.id" class="card">
+              <div>
+                <div class="card-title">
+                  {{ it.name }}
+                  <span class="rarity" :class="'r-' + it.rarity">{{ it.rarity }}</span>
+                </div>
+                <div class="muted">Доход: +{{ it.income }}/с | В наличии: {{ it.count }}</div>
+              </div>
+              <button class="buy" :disabled="game.gold < it.cost" @click="game.craft(it.id)">
+                Создать ({{ fmt(it.cost) }})
+              </button>
+            </li>
+          </ul>
+        </section>
+
+        <section v-if="tab === 'orders'" class="panel">
+          <h2>Заказы героев</h2>
+          <p v-if="game.orders.length === 0" class="muted">Герои в пути... подождите или позовите.</p>
+          <ul class="cards">
+            <li v-for="o in game.orders" :key="o.id" class="card">
+              <div>
+                <div class="card-title">{{ o.hero }} хочет: {{ itemName(o.itemId) }}</div>
+                <div class="muted">
+                  У вас: {{ itemCount(o.itemId) }} | Награда: 🪙 {{ fmt(o.rewardGold) }}
+                  <span v-if="o.rewardDiamonds > 0">+ <img :src="iconStone" class="gem-inline" alt="" /> {{ o.rewardDiamonds }}</span>
+                  | Время: {{ fmtTime(o.timeLeft) }}
+                </div>
+              </div>
+              <div class="actions">
+                <button class="buy" :disabled="itemCount(o.itemId) <= 0" @click="game.completeOrder(o.id)">
+                  Выполнить
+                </button>
+                <button class="ghost" @click="game.cancelOrder(o.id)">Отказать</button>
+              </div>
+            </li>
+          </ul>
+          <button class="big" @click="game.spawnOrder()">Позвать героя</button>
+        </section>
+
+        <section v-if="tab === 'shop'" class="panel">
+          <h2>Магазин</h2>
+          <p class="muted">Бустеры покупаются за алмазы <img :src="iconStone" class="gem-inline" alt="" /></p>
+          <ul class="cards">
+            <li class="card">
+              <div>
+                <div class="card-title">x2 Золото (60с)</div>
+                <div class="muted">Цена: <img :src="iconStone" class="gem-inline" alt="" /> 5</div>
+              </div>
+              <button class="buy" :disabled="game.diamonds < 5" @click="game.buyBooster('goldx2')">Купить</button>
+            </li>
+            <li class="card">
+              <div>
+                <div class="card-title">Авто-клик (60с)</div>
+                <div class="muted">Цена: <img :src="iconStone" class="gem-inline" alt="" /> 10</div>
+              </div>
+              <button class="buy" :disabled="game.diamonds < 10" @click="game.buyBooster('auto')">Купить</button>
+            </li>
+            <li class="card">
+              <div>
+                <div class="card-title">Lucky Chance (+2% крит навсегда)</div>
+                <div class="muted">Цена: <img :src="iconStone" class="gem-inline" alt="" /> 8</div>
+              </div>
+              <button class="buy" :disabled="game.diamonds < 8" @click="game.buyBooster('lucky')">Купить</button>
+            </li>
+            <li class="card">
+              <div>
+                <div class="card-title">x2 Скорость (+5 пасс. навсегда)</div>
+                <div class="muted">Цена: <img :src="iconStone" class="gem-inline" alt="" /> 6</div>
+              </div>
+              <button class="buy" :disabled="game.diamonds < 6" @click="game.buyBooster('speed')">Купить</button>
+            </li>
+          </ul>
+          <h3>Rewarded Ads</h3>
+          <div class="row">
+            <button class="big" @click="game.watchAd('gold')">📺 Реклама → Золото</button>
+            <button class="big" @click="game.watchAd('chest')">📺 Реклама → Сундук</button>
+            <button class="big" @click="game.watchAd('diamonds')">📺 Реклама → <img :src="iconStone" class="gem-inline" alt="" /> 5</button>
+          </div>
+        </section>
+
+        <section v-if="tab === 'achievements'" class="panel">
+          <h2>События / Достижения</h2>
+          <ul class="cards">
+            <li v-for="a in game.achievements" :key="a.id" class="card">
+              <div>
+                <div class="card-title">{{ a.name }} <span v-if="a.done">✅</span></div>
+                <div class="muted">Цель: {{ a.target }} | Награда: <img :src="iconStone" class="gem-inline" alt="" /> 5</div>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <section v-if="tab === 'map'" class="panel">
+          <h2>Карта миров</h2>
+          <ul class="cards">
+            <li v-for="r in game.regions" :key="r.id" class="card">
+              <div>
+                <div class="card-title">
+                  {{ r.name }}
+                  <span v-if="r.unlocked" class="lvl">Открыт (x{{ r.bonus }})</span>
+                </div>
+                <div class="muted">Стоимость: {{ fmt(r.unlockCost) }}</div>
+              </div>
+              <button v-if="!r.unlocked" class="buy" :disabled="game.gold < r.unlockCost" @click="game.unlockRegion(r.id)">
+                Открыть
+              </button>
+            </li>
+          </ul>
+        </section>
+
+        <section v-if="tab === 'chests'" class="panel">
+          <h2>Сундуки</h2>
+          <ul class="cards">
+            <li v-for="c in game.chests" :key="c.id" class="card">
+              <div>
+                <div class="card-title">{{ c.type }}</div>
+                <div class="muted">В наличии: {{ c.count }}</div>
+              </div>
+              <button class="buy" :disabled="c.count <= 0" @click="game.openChest(c.type)">Открыть</button>
+            </li>
+          </ul>
+        </section>
+
+        <section v-if="tab === 'settings'" class="panel">
+          <h2>Настройки</h2>
+          <label><input type="checkbox" v-model="game.settings.sound" /> Звук</label>
+          <label><input type="checkbox" v-model="game.settings.music" /> Музыка</label>
+          <label><input type="checkbox" v-model="game.settings.vibro" /> Вибрация</label>
+          <label>
+            Язык:
+            <select v-model="game.settings.lang">
+              <option>RU</option>
+              <option>EN</option>
+            </select>
+          </label>
+          <div class="row">
+            <button class="big" @click="game.save()">Сохранить вручную</button>
+            <button class="ghost" @click="game.resetAll()">Сбросить прогресс</button>
+          </div>
+        </section>
+      </main>
+
+      <!-- Modals -->
+      <UpgradesModal :open="showUpgrades" @close="showUpgrades = false" />
+      <ItemsModal :open="showItems" @close="showItems = false" />
+      <OrdersModal :open="showOrders" @close="showOrders = false" />
+      <AchievementsModal :open="showAchievements" @close="showAchievements = false" />
+      <SettingsModal :open="showSettings" @close="showSettings = false" />
+      <ChestsModal
+        :open="showChests"
+        @close="showChests = false"
+        @reward="(r) => (chestReward = r)"
+      />
+      <ChestRewardPopup
+        v-if="chestReward"
+        :chest-name="chestReward.chestName"
+        :chest-img="chestReward.chestImg"
+        :gold="chestReward.gold"
+        :diamonds="chestReward.diamonds"
+        @close="chestReward = null"
+      />
+      <ShopModal :open="showShop" @close="showShop = false" />
+      <ForgeView v-if="onForge" @close="closeForge" />
+
+      <!-- Bottom blurred backdrop -->
+      <div class="bottom-bg"></div>
+
+      <!-- Bottom navigation -->
+      <nav class="bottom-nav">
+        <button :class="{ active: showUpgrades }" @click.stop="showUpgrades = true">
+          <img :src="iconLevelUp" alt="" class="nav-icon" draggable="false" />
+          <span class="nav-label">Улучшения</span>
+        </button>
+        <button :class="{ active: showItems }" @click.stop="showItems = true">
+          <img :src="iconSword" alt="" class="nav-icon" draggable="false" />
+          <span class="nav-label">Предметы</span>
+        </button>
+        <button :class="{ active: showOrders }" @click.stop="showOrders = true">
+          <img :src="iconScroll" alt="" class="nav-icon" draggable="false" />
+          <span class="nav-label">Заказы</span>
+        </button>
+        <button :class="{ active: onForge }" @click.stop="openForge">
+          <img :src="iconBlacksmith" alt="" class="nav-icon" draggable="false" />
+          <span class="nav-label">Кузница</span>
+        </button>
+      </nav>
+
+      <!-- Dropdown menu -->
+      <div v-if="menuOpen" class="dropdown" @click.self="menuOpen = false">
+        <div class="dropdown-body">
+          <button @click="tab = 'map'; menuOpen = false">🗺 Карта</button>
+          <button @click="showAchievements = true; menuOpen = false">🏆 Достижения</button>
+          <button @click="showSettings = true; menuOpen = false">⚙️ Настройки</button>
+        </div>
+      </div>
+
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.game {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 30%, #1a1208 0%, #050302 70%);
+  padding: 20px;
+}
+
+/* Outer tablet bezel */
+.screen {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  aspect-ratio: 4 / 3;
+  max-height: calc(100vh - 40px);
+  background: #0d0805;
+  color: #f3e9c8;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif;
+
+  /* Tablet frame: thick dark bezel with metallic sheen */
+  padding: 28px 22px;
+  border-radius: 36px;
+  background-image:
+    linear-gradient(145deg, #2a2520 0%, #15110d 30%, #0a0805 70%, #1c1814 100%);
+  border: 2px solid #3a3530;
+  box-shadow:
+    inset 0 0 0 2px #050302,
+    inset 0 2px 8px rgba(255, 255, 255, 0.06),
+    inset 0 -2px 8px rgba(0, 0, 0, 0.8),
+    0 20px 60px rgba(0, 0, 0, 0.9),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* Camera dot on top bezel */
+.screen::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #4a4540, #0a0805);
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  z-index: 10;
+}
+
+/* Home button on bottom bezel */
+.screen::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #2a2520, #0a0805);
+  border: 1px solid #3a3530;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08), inset 0 -1px 2px rgba(0, 0, 0, 0.8);
+  z-index: 10;
+}
+
+/* Inner screen (the actual game viewport) */
+.viewport {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background-color: #2a1408;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 215, 100, 0.08),
+    inset 0 0 20px rgba(0, 0, 0, 0.6);
+}
+
+/* Top bar with currencies + burger */
+.topbar {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  align-items: center;
+  justify-content: flex-start;
+  z-index: 5;
+  pointer-events: none;
+}
+.cur {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  pointer-events: auto;
+  background: linear-gradient(180deg, #4a2c14 0%, #2a1808 100%);
+  border: 2px solid #6a3a18;
+  border-radius: 22px;
+  padding: 0 14px 0 4px;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 215, 100, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.5);
+}
+.cur.gold {
+  flex: 0 0 auto;
+}
+.cur.diamonds {
+  flex: 0 0 auto;
+  padding-right: 4px;
+}
+.cur.clickable {
+  cursor: pointer;
+  transition: transform 0.08s, filter 0.1s;
+}
+.cur.clickable:hover {
+  filter: brightness(1.08);
+}
+.cur.clickable:active {
+  transform: translateY(1px);
+}
+
+/* Gold coin image */
+.coin-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 6px rgba(255, 200, 80, 0.4));
+  flex-shrink: 0;
+}
+.gem-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+  flex-shrink: 0;
+}
+.gem-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+  flex-shrink: 0;
+}
+.gem-inline {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  vertical-align: middle;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.cur-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+.cur-value {
+  font-weight: 900;
+  font-size: 16px;
+  color: #fff5d0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.cur-rate {
+  font-size: 10px;
+  color: #5cffa0;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.cur.diamonds .cur-value {
+  color: #e5d4ff;
+}
+
+.plus {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #7ee06a, #2e8b3a);
+  color: #fff;
+  border: 2px solid #1c5a25;
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Side action buttons */
+.side-right {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 4;
+}
+.side-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #f3e9c8;
+  padding: 4px;
+}
+.side-icon {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.side-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.6));
+}
+.notify-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle at 30% 30%, #ff6060, #c01010);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  z-index: 1;
+}
+.side-label {
+  font-size: 12px;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* Stage with character */
+.stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  min-height: 340px;
+}
+.character {
+  position: absolute;
+  left: 22%;
+  bottom: -179px;
+  height: 130%;
+  max-height: 600px;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  object-position: center bottom;
+  transform: translateX(-50%);
+  pointer-events: none;
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.7));
+  transition: transform 0.08s;
+}
+.stage:active .character {
+  transform: translateX(-50%) scale(0.985);
+}
+.anvil-area {
+  position: absolute;
+  bottom: 4%;
+  left: auto;
+  right: 6%;
+  transform: none;
+  width: 340px;
+  height: 320px;
+  pointer-events: none;
+  z-index: 2;
+}
+.anvil-glow {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  width: 260px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 200, 60, 0.75) 0%, rgba(255, 140, 30, 0.45) 40%, rgba(255, 80, 20, 0) 75%);
+  animation: glowPulse 1.8s ease-in-out infinite;
+  filter: blur(3px);
+}
+.anvil-img {
+  position: absolute;
+  bottom: -56%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.75));
+  z-index: 1;
+}
+.hammer-img {
+  position: absolute;
+  top: auto;
+  bottom: 16%;
+  left: 58%;
+  width: 60%;
+  height: auto;
+  transform: translate(-30%, 0) rotate(-20deg);
+  transform-origin: 50% 90%;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.75));
+  animation: hammerBob 1.8s ease-in-out infinite;
+  z-index: 2;
+}
+.hammer-img.striking {
+  animation: hammerStrike 0.28s cubic-bezier(0.4, 0, 0.6, 1);
+}
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+}
+@keyframes hammerStrike {
+  0%   { transform: translate(-30%, 0) rotate(-20deg); }
+  30%  { transform: translate(-30%, -8%) rotate(20deg); }
+  60%  { transform: translate(-30%, 8%) rotate(-70deg); }
+  100% { transform: translate(-30%, 0) rotate(-20deg); }
+}
+
+/* Sparks burst on strike */
+.sparks {
+  position: absolute;
+  bottom: 10%;
+  left: 60%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.spark {
+  position: absolute;
+  width: var(--size, 10px);
+  height: var(--size, 10px);
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff5d0 0%, #ffd95a 40%, #ff8a20 70%, transparent 100%);
+  box-shadow:
+    0 0 10px 3px rgba(255, 200, 80, 0.8),
+    0 0 18px 6px rgba(255, 150, 30, 0.45);
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0);
+  animation: sparkFly 0.6s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}
+@keyframes sparkFly {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(0.5);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(calc(var(--dist) * 0.3)) scale(1);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--dist)) scale(0.3);
+    opacity: 0;
+  }
+}
+@keyframes hammerBob {
+  0%, 100% { transform: translate(-30%, 0) rotate(-20deg); }
+  50%      { transform: translate(-30%, -6%) rotate(-18deg); }
+}
+
+/* Floating hit numbers */
+.floats {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+.float-hit {
+  position: absolute;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  font-size: 36px;
+  font-weight: 900;
+  color: #fff5d0;
+  text-shadow:
+    0 0 8px #ff8800,
+    0 0 12px rgba(255, 150, 50, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.9),
+    -2px 0 0 #6a3a10,
+    2px 0 0 #6a3a10,
+    0 -2px 0 #6a3a10,
+    0 2px 0 #6a3a10;
+  animation: floatUp 0.9s ease-out forwards;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.float-coin {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px rgba(255, 200, 80, 0.8)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+}
+.float-hit.crit {
+  color: #ffd95a;
+  font-size: 44px;
+}
+.crit-label {
+  color: #ff5a5a;
+  font-size: 20px;
+  margin-left: 4px;
+}
+@keyframes floatUp {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  20% { opacity: 1; transform: translate(-50%, -90%) scale(1.1); }
+  100% { opacity: 0; transform: translate(-50%, -180%) scale(1); }
+}
+
+.badges {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+.badge {
+  background: rgba(212, 136, 26, 0.9);
+  color: #1a0f06;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Forge progress */
+.forge-bar {
+  margin: 0 auto 12px;
+  padding: 8px 18px 10px;
+  width: fit-content;
+  min-width: 220px;
+  background: linear-gradient(180deg, #6a3a18 0%, #4a2410 50%, #2a1408 100%);
+  border: 2px solid #4a2810;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 215, 130, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.45),
+    0 4px 10px rgba(0, 0, 0, 0.6);
+  z-index: 5;
+  pointer-events: none;
+  align-self: center;
+}
+.forge-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffd95a;
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+  text-shadow:
+    0 1px 0 #4a2810,
+    0 2px 3px rgba(0, 0, 0, 0.8);
+}
+.forge-progress {
+  position: relative;
+  height: 18px;
+  background: linear-gradient(180deg, #0a0604 0%, #1a0f06 100%);
+  border: 1.5px solid #1a0f06;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 2px 3px rgba(0, 0, 0, 0.9),
+    inset 0 -1px 0 rgba(255, 215, 100, 0.1),
+    0 1px 0 rgba(255, 215, 130, 0.2);
+}
+.forge-fill {
+  height: 100%;
+  background:
+    linear-gradient(180deg, #a8f070 0%, #5bc94a 45%, #2e8b3a 100%);
+  border-radius: 10px;
+  transition: width 0.3s;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 80, 20, 0.5);
+  position: relative;
+}
+.forge-fill::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  right: 4px;
+  height: 4px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent);
+  border-radius: 4px;
+}
+.forge-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.3px;
+  text-shadow:
+    -1px 0 0 #1a3a10,
+    1px 0 0 #1a3a10,
+    0 -1px 0 #1a3a10,
+    0 1px 0 #1a3a10,
+    0 2px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* Bottom navigation - transparent background */
+.bottom-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 220px;
+  pointer-events: none;
+  z-index: 4;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 6, 3, 0) 0%,
+    rgba(10, 6, 3, 0.1) 20%,
+    rgba(10, 6, 3, 0.3) 40%,
+    rgba(8, 4, 2, 0.55) 60%,
+    rgba(8, 4, 2, 0.8) 80%,
+    rgba(5, 3, 1, 0.95) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.15) 25%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0.85) 75%,
+    #000 100%
+  );
+          mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.15) 25%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0.85) 75%,
+    #000 100%
+  );
+}
+.bottom-nav {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 10px 12px;
+  background: transparent;
+  border-top: none;
+  box-shadow: none;
+  z-index: 5;
+  pointer-events: none;
+}
+.bottom-nav button {
+  pointer-events: auto;
+}
+.bottom-nav button {
+  position: relative;
+  width: 88px;
+  flex-shrink: 0;
+  background:
+    linear-gradient(180deg, #c08040 0%, #9a5a25 45%, #7a4418 100%);
+  border: 2px solid #4a2810;
+  border-radius: 12px;
+  color: #fff5d0;
+  padding: 8px 4px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-family: inherit;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 160, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    0 3px 0 #3a1f0c,
+    0 4px 6px rgba(0, 0, 0, 0.5);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.bottom-nav button::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 220, 160, 0.15);
+  pointer-events: none;
+}
+.bottom-nav button:active {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 220, 160, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4),
+    0 1px 0 #3a1f0c,
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+.bottom-nav button.active {
+  background:
+    linear-gradient(180deg, #d89048 0%, #a8602a 45%, #82471a 100%);
+  border-color: #5a3014;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 230, 170, 0.5),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.4),
+    inset 0 0 12px rgba(255, 180, 80, 0.3),
+    0 3px 0 #3a1f0c,
+    0 4px 8px rgba(255, 150, 50, 0.3);
+}
+.nav-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+}
+.nav-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff5d0;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.6),
+    0 2px 3px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.3px;
+}
+
+/* Content panels for non-main tabs */
+.content {
+  flex: 1;
+  background: rgba(20, 12, 6, 0.92);
+  margin: 8px;
+  border: 2px solid #8a5a2a;
+  border-radius: 12px;
+  padding: 12px;
+  overflow-y: auto;
+}
+.panel h2 {
+  margin-top: 0;
+  color: #ffd95a;
+}
+.muted {
+  color: #c4a880;
+  font-size: 0.9em;
+}
+.subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+.subtabs button {
+  padding: 6px 12px;
+  background: #4a2c14;
+  border: 1px solid #8a5a2a;
+  color: #f3e9c8;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.subtabs button.active {
+  background: #d4881a;
+  color: #1a0f06;
+}
+.cards {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #3a2415;
+  border: 1px solid #8a5a2a;
+  border-radius: 8px;
+}
+.card-title {
+  font-weight: 700;
+}
+.lvl {
+  color: #ffd95a;
+  margin-left: 8px;
+  font-size: 0.85em;
+}
+.rarity {
+  margin-left: 8px;
+  font-size: 0.8em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.r-Обычный { background: #777; }
+.r-Редкий { background: #2e86c1; }
+.r-Эпический { background: #8e44ad; }
+.r-Легендарный { background: #d4881a; color: #1a0f06; }
+.r-Мифический { background: #c0392b; }
+.buy {
+  background: #2c8a3a;
+  color: #fff;
+  border: 1px solid #5cba6a;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.buy:disabled {
+  background: #555;
+  border-color: #777;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.ghost {
+  background: transparent;
+  color: #f3e9c8;
+  border: 1px solid #8a5a2a;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.big {
+  background: #d4881a;
+  color: #1a0f06;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.big:disabled {
+  background: #555;
+  cursor: not-allowed;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+label {
+  display: block;
+  margin: 8px 0;
+}
+
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 64px 14px 0;
+}
+.dropdown-body {
+  background: linear-gradient(180deg, #4a2c14, #2a1808);
+  border: 2px solid #d4881a;
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
+}
+.dropdown-body button {
+  background: #4a2c14;
+  color: #f3e9c8;
+  border: 1px solid #8a5a2a;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 14px;
+}
+.dropdown-body button:hover {
+  background: #5a3818;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-body {
+  background: #3a2415;
+  border: 2px solid #d4881a;
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  min-width: 280px;
+  color: #f3e9c8;
+}
+</style>
