@@ -7,6 +7,7 @@ import bgLevel2 from '@/assets/level/2.png'
 import bgLevel3 from '@/assets/level/3.png'
 import bgLevel4 from '@/assets/level/4.png'
 import bgLevel5 from '@/assets/level/5.png'
+import bgFull from '@/assets/full-bg.png'
 import characterImg from '@/assets/character.png'
 import iconBlacksmith from '@/assets/blacksmith.png'
 import iconLevelUp from '@/assets/level-up.png'
@@ -716,13 +717,20 @@ const forgeProgress = computed(() => game.forgeXpProgress)
 
 <style scoped>
 .game {
-  min-height: 100vh;
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(circle at 50% 30%, #1a1208 0%, #050302 70%);
   padding: 20px;
+  /* background lives on <body> now — keep this transparent */
+  background: transparent;
+  overflow: hidden;
+}
+.game > .screen {
+  position: relative;
+  z-index: 1;
 }
 
 /* Outer tablet bezel */
