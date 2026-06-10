@@ -1,6 +1,6 @@
 import { onUnmounted, ref, watch, type Ref } from 'vue'
 
-import { adsPlaying, showInterstitialThen } from '@/ads/ads'
+import { adsPlaying, setAdBreakBlocking, showInterstitialThen } from '@/ads/ads'
 import { pauseMusic, resumeMusic } from '@/audio/sounds'
 import { gameplayPause, gameplayResume, getServerTime } from '@/yandex/sdk'
 
@@ -180,7 +180,16 @@ export function useGameplayInterstitialSchedule(isPlaying: Ref<boolean>) {
     pauseSchedule()
   })
 
+  watch(
+    isGameplayBlocked,
+    (blocked) => {
+      setAdBreakBlocking(blocked)
+    },
+    { immediate: true },
+  )
+
   onUnmounted(() => {
+    setAdBreakBlocking(false)
     stopSchedule()
   })
 

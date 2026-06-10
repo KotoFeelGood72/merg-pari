@@ -24,6 +24,7 @@ import { pauseMusic, resumeMusic } from '@/audio/sounds'
 import { useGameStore } from '@/stores/game'
 import { usePlayerStore } from '@/stores/playerStore'
 import { gameplayPause, gameplayResume } from '@/yandex/sdk'
+import { tryShowPlatformReviewWhenSafe } from '@/yandex/reviewPrompt'
 
 const store = useGameStore()
 const player = usePlayerStore()
@@ -117,10 +118,14 @@ function onRestart(): void {
 }
 
 function onMenu(): void {
+  const askReviewAfterMenu = store.gameState === 'victory'
   showInterstitialThen(
     () => {
       engineRef.value?.stop()
       store.goToMenu()
+      if (askReviewAfterMenu) {
+        tryShowPlatformReviewWhenSafe()
+      }
     },
     'menu',
     { userInitiated: true },

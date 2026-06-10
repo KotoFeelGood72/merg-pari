@@ -11,6 +11,7 @@ import task3Icon from '@/assets/ui/tasks/task-3.png'
 import task4Icon from '@/assets/ui/tasks/task-4.png'
 import task5Icon from '@/assets/ui/tasks/task-5.png'
 import task6Icon from '@/assets/ui/tasks/task-6.png'
+import { showInterstitialThen } from '@/ads/ads'
 import { dailyQuests } from '@/game/config/quests'
 import { useGsapStaggerEnter } from '@/composables/useGsapEnter'
 import { useGameStore } from '@/stores/game'
@@ -24,12 +25,25 @@ const taskIcons = [task1Icon, task2Icon, task3Icon, task4Icon, task5Icon, task6I
 const emit = defineEmits<{ settings: [] }>()
 
 const tasksRef = ref<HTMLElement | null>(null)
+const claimingQuestId = ref<string | null>(null)
+
 useGsapStaggerEnter(tasksRef, '.quest-card', { y: 16, stagger: 0.06, delay: 0.1 })
 
 function claim(quest: (typeof dailyQuests)[number]): void {
-  if (player.claimQuest(quest)) {
-    store.showToast('Награда получена!')
-  }
+  if (claimingQuestId.value) return
+  if (!player.isQuestComplete(quest) || player.isQuestClaimed(quest.id)) return
+
+  claimingQuestId.value = quest.id
+  showInterstitialThen(
+    () => {
+      claimingQuestId.value = null
+      if (player.claimQuest(quest)) {
+        store.showToast('Награда получена!')
+      }
+    },
+    'quest_reward',
+    { userInitiated: true },
+  )
 }
 
 function onQuestCardClick(quest: (typeof dailyQuests)[number]): void {
@@ -52,7 +66,9 @@ function onQuestCardClick(quest: (typeof dailyQuests)[number]): void {
             'quest-card--done': player.isQuestComplete(quest),
             'quest-card--claimed': player.isQuestClaimed(quest.id),
             'quest-card--claimable':
-              player.isQuestComplete(quest) && !player.isQuestClaimed(quest.id),
+              player.isQuestComplete(quest) &&
+              !player.isQuestClaimed(quest.id) &&
+              claimingQuestId !== quest.id,
           }"
           :role="
             player.isQuestComplete(quest) && !player.isQuestClaimed(quest.id) ? 'button' : undefined
@@ -96,9 +112,10 @@ function onQuestCardClick(quest: (typeof dailyQuests)[number]): void {
               v-if="player.isQuestComplete(quest) && !player.isQuestClaimed(quest.id)"
               type="button"
               class="quest-card__claim-link"
+              :disabled="claimingQuestId === quest.id"
               @click.stop="claim(quest)"
             >
-              Забрать
+              {{ claimingQuestId === quest.id ? 'Загрузка…' : 'Забрать' }}
             </button>
 
             <span v-if="!player.isQuestClaimed(quest.id)" class="quest-card__nums">
@@ -264,6 +281,11 @@ function onQuestCardClick(quest: (typeof dailyQuests)[number]): void {
 
 .quest-card__claim-link:hover {
   color: #248532;
+}
+
+.quest-card__claim-link:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .quest-card__nums {

@@ -247,8 +247,8 @@ export async function openPlatformReview(): Promise<boolean> {
   }
 }
 
-/** @deprecated Используйте checkCanReview + openPlatformReview */
+/** @deprecated Используйте tryShowPlatformReviewWhenSafe из @/yandex/reviewPrompt */
 export async function tryRequestReview(): Promise<void> {
-  if (!(await checkCanReview())) return
-  await openPlatformReview()
+  const { tryShowPlatformReviewWhenSafe } = await import('@/yandex/reviewPrompt')
+  tryShowPlatformReviewWhenSafe()
 }

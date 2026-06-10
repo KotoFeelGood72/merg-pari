@@ -7,7 +7,6 @@ import { getServerTime, getSessionStartMs, getYsdk } from '@/yandex/sdk'
 
 const FIRST_AD_GAP = 60_000 // no interstitial in first minute (Yandex requirement)
 const INTERSTITIAL_MIN_GAP = 90_000 // our cooldown — 30s stricter than SDK
-const USER_INTERSTITIAL_MIN_GAP = 30_000 // минимум между рекламами по явному действию игрока
 const INTER_TO_REWARD_GAP = 30_000 // don't pile ads back-to-back
 
 export interface InterstitialOptions {
@@ -21,6 +20,20 @@ let lastInterstitialAt = 0
 let lastAnyAdAt = 0
 let startupAdShown = false
 const adPlaying = ref(false)
+let adBreakBlocking = false
+
+/** Блокировка UI во время отсчёта перед плановой рекламой. */
+export function setAdBreakBlocking(blocked: boolean): void {
+  adBreakBlocking = blocked
+}
+
+export function isAdBreakBlocking(): boolean {
+  return adBreakBlocking
+}
+
+function overlaySafeFromAds(): boolean {
+  return !adPlaying.value && !adBreakBlocking
+}
 
 function emitPause() {
   adPlaying.value = true
@@ -50,12 +63,16 @@ export function msSinceLastAd(): number {
  */
 export function runWhenSafeFromAds(fn: () => void): void {
   const attempt = () => {
-    if (adsPlaying()) {
-      window.addEventListener(
-        'ads:resume',
-        () => window.setTimeout(attempt, UI_AFTER_AD_GAP),
-        { once: true },
-      )
+    if (!overlaySafeFromAds()) {
+      if (adsPlaying()) {
+        window.addEventListener(
+          'ads:resume',
+          () => window.setTimeout(attempt, UI_AFTER_AD_GAP),
+          { once: true },
+        )
+      } else {
+        window.setTimeout(attempt, 500)
+      }
       return
     }
     const elapsed = msSinceLastAd()
@@ -75,10 +92,13 @@ export function canShowInterstitial(options?: InterstitialOptions): boolean {
   const scheduled = options?.scheduled === true
   if (import.meta.env.DEV && (userInitiated || scheduled)) return true
 
-  const now = getServerTime()
-  if (!userInitiated && now - getSessionStartMs() < FIRST_AD_GAP) return false
+  // Явное действие игрока — всегда пробуем показать; частоту контролирует платформа.
+  if (userInitiated) return true
 
-  const minGap = userInitiated ? USER_INTERSTITIAL_MIN_GAP : INTERSTITIAL_MIN_GAP
+  const now = getServerTime()
+  if (now - getSessionStartMs() < FIRST_AD_GAP) return false
+
+  const minGap = INTERSTITIAL_MIN_GAP
   if (now - lastInterstitialAt < minGap) return false
   if (now - lastAnyAdAt < INTER_TO_REWARD_GAP) return false
   return true
@@ -163,7 +183,7 @@ export function showInterstitial(_reason?: string, options?: InterstitialOptions
 
 /**
  * Показать полноэкранную рекламу, затем выполнить callback.
- * Если кулдаун не прошёл или SDK недоступен — callback вызывается сразу.
+ * Для userInitiated всегда вызывает SDK (частоту решает платформа).
  */
 export function showInterstitialThen(
   onDone: () => void,
@@ -176,6 +196,15 @@ export function showInterstitialThen(
     } catch (err) {
       if (import.meta.env.DEV) console.warn('[ads] interstitial onDone failed', err)
     }
+  }
+
+  if (adPlaying.value) {
+    window.addEventListener(
+      'ads:resume',
+      () => showInterstitialThen(onDone, reason, options),
+      { once: true },
+    )
+    return
   }
 
   if (!canShowInterstitial(options)) {
@@ -195,6 +224,12 @@ export function showInterstitialThen(
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
       console.info('[ads] interstitial (dev stub)', reason)
+      emitPause()
+      window.setTimeout(() => {
+        emitResume()
+        finish()
+      }, 1200)
+      return
     }
     finish()
     return
