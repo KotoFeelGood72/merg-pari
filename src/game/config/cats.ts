@@ -31,7 +31,7 @@ function catalogRadius(level: number): number {
   return Math.round(MIN_OBJECT_RADIUS + progress * (MAX_OBJECT_RADIUS - MIN_OBJECT_RADIUS))
 }
 
-/** 30 уровней — спрайты 11.png … 40.png (уровень + 10) */
+/** 30 уровней — спрайты 1.webp … 30.webp */
 export const catCatalog: CatCatalogEntry[] = [
   {
     level: 1,

@@ -6,9 +6,9 @@ import IconMusicOff from '~icons/mdi/music-off'
 import IconVolumeHigh from '~icons/mdi/volume-high'
 import IconVolumeOff from '~icons/mdi/volume-off'
 
-import continueBtn from '@/assets/ui/continiue.png'
-import menuBtn from '@/assets/ui/menu.png'
-import restartBtn from '@/assets/ui/restart.png'
+import continueBtn from '@/assets/ui/buttons/continiue.png'
+import menuBtn from '@/assets/ui/buttons/menu.png'
+import restartBtn from '@/assets/ui/buttons/restart.png'
 import { useGsapModal } from '@/composables/useGsapModal'
 import { useSettingsStore } from '@/stores/settingsStore'
 

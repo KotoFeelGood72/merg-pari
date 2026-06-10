@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, toRef, watch } from 'vue'
 
-import okeyBtn from '@/assets/ui/okey.png'
+import okeyBtn from '@/assets/ui/buttons/okey.png'
 import { useGsapModal } from '@/composables/useGsapModal'
 import { animateContentSwap } from '@/shared/animations/gsapPresets'
 import { useGameStore } from '@/stores/game'

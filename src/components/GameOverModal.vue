@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, toRef } from 'vue'
 
-import adIcon from '@/assets/ui/ad.png'
-import restartBtn from '@/assets/ui/restart.png'
-import endRibbon from '@/assets/ui/end.png'
+import adIcon from '@/assets/ui/modals/ad.png'
+import restartBtn from '@/assets/ui/buttons/restart.png'
+import endRibbon from '@/assets/ui/modals/end.png'
 import { useGsapModal } from '@/composables/useGsapModal'
 import { useGameStore } from '@/stores/game'
 

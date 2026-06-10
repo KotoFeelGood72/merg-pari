@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-import boosterBomb from '@/assets/ui/booster-1.png'
-import boosterRainbow from '@/assets/ui/booster-2.png'
-import boosterCookie from '@/assets/ui/booster-3.png'
+import boosterBomb from '@/assets/ui/boosters/booster-1.png'
+import boosterRainbow from '@/assets/ui/boosters/booster-2.png'
+import boosterCookie from '@/assets/ui/boosters/booster-3.png'
 import type { BoosterType } from '@/game/types/booster.types'
 import { useGsapSlideEnter, useGsapStaggerEnter } from '@/composables/useGsapEnter'
 import { useGameStore } from '@/stores/game'

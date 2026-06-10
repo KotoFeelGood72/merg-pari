@@ -2,9 +2,9 @@
 import { ref } from 'vue'
 
 import HubLayout from '@/components/hub/HubLayout.vue'
-import logoUrl from '@/assets/logo.png'
-import gameStartIcon from '@/assets/ui/gamestart.png'
-import catsIllustration from '@/assets/ui/cats.png'
+import logoUrl from '@/assets/brand/logo.webp'
+import gameStartIcon from '@/assets/ui/buttons/gamestart.png'
+import catsIllustration from '@/assets/ui/illustrations/cats.png'
 import { showInterstitialThen } from '@/ads/ads'
 import { useGsapIdleFloat, useGsapPopEnter } from '@/composables/useGsapEnter'
 import { useGameStore } from '@/stores/game'

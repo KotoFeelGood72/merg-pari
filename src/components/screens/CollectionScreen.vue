@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 import CustomScroll from '@/components/CustomScroll.vue'
 import HubLayout from '@/components/hub/HubLayout.vue'
-import circleFrame from '@/assets/circle.png'
+import circleFrame from '@/assets/game/circle.webp'
 import { getCatSpriteUrl } from '@/game/assets/catSprites'
 import { catCatalog, MAX_CATALOG_LEVEL, rarityLabels } from '@/game/config/cats'
 import { useGsapStaggerEnter } from '@/composables/useGsapEnter'

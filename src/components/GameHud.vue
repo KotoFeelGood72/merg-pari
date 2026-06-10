@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-import coinIcon from '@/assets/ui/coin.png'
-import pauseIcon from '@/assets/ui/pause.png'
+import coinIcon from '@/assets/ui/hud/coin.png'
+import pauseIcon from '@/assets/ui/hud/pause.png'
 import { useGsapSlideEnter } from '@/composables/useGsapEnter'
 import { useGameStore } from '@/stores/game'
 

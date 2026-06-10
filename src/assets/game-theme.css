@@ -71,7 +71,7 @@
   width: 100%;
   overflow-x: hidden;
   background-color: var(--color-wall-deep);
-  background-image: url('./mobile-bg.png');
+  background-image: url('./backgrounds/mobile-bg.jpg');
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
@@ -79,7 +79,7 @@
 
 @media (min-width: 768px) {
   .scene-bg {
-    background-image: url('./pc-bg.png');
+    background-image: url('./backgrounds/pc-bg.jpg');
     background-position: center center;
   }
 
@@ -362,7 +362,7 @@
   background: linear-gradient(90deg, #ffd76a, #e8a830);
 }
 
-/* Превью котика — пузырь + спрайт из assets/cats */
+/* Превью котика — пузырь + спрайт из assets/game/cats (1.webp … 30.webp) */
 .cat-preview {
   position: relative;
   width: 84px;

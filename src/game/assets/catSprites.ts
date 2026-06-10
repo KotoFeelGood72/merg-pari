@@ -1,9 +1,8 @@
 import { MAX_LEVEL } from '@/game/config/objectLevels'
 
-/** Файлы в assets/cats: 11.png … 40.png ↔ игровые уровни 1 … 30 */
-export const CAT_SPRITE_INDEX_OFFSET = 10
-export const CAT_SPRITE_FIRST = 11
-export const CAT_SPRITE_LAST = 40
+/** Файлы в assets/game/cats: 1.webp … 30.webp ↔ игровые уровни 1 … 30 */
+export const CAT_SPRITE_FIRST = 1
+export const CAT_SPRITE_LAST = MAX_LEVEL
 
 const sprites = new Map<number, HTMLImageElement>()
 let circleFrame: HTMLImageElement | null = null
@@ -21,19 +20,18 @@ function loadImage(url: string): Promise<HTMLImageElement | null> {
 }
 
 export function getCatSpriteAssetId(level: number): number {
-  return level + CAT_SPRITE_INDEX_OFFSET
+  return level
 }
 
 export function getCatSpriteUrl(level: number): string {
-  const assetId = getCatSpriteAssetId(level)
-  return new URL(`../../assets/cats/${assetId}.png`, import.meta.url).href
+  return new URL(`../../assets/game/cats/${level}.webp`, import.meta.url).href
 }
 
 export function preloadCatSprites(): Promise<void> {
   if (loadPromise) return loadPromise
 
-  const circleUrl = new URL('../../assets/circle.png', import.meta.url).href
-  const fieldBgUrl = new URL('../../assets/gamebg.png', import.meta.url).href
+  const circleUrl = new URL('../../assets/game/circle.webp', import.meta.url).href
+  const fieldBgUrl = new URL('../../assets/backgrounds/gamebg.jpg', import.meta.url).href
 
   loadPromise = Promise.all([
     loadImage(circleUrl).then((img) => {
@@ -44,8 +42,7 @@ export function preloadCatSprites(): Promise<void> {
     }),
     ...Array.from({ length: MAX_LEVEL }, async (_, index) => {
       const level = index + 1
-      const assetId = getCatSpriteAssetId(level)
-      const url = new URL(`../../assets/cats/${assetId}.png`, import.meta.url).href
+      const url = new URL(`../../assets/game/cats/${level}.webp`, import.meta.url).href
       const img = await loadImage(url)
       if (img) sprites.set(level, img)
     }),

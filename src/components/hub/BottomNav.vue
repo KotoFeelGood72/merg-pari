@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue'
 
-import collectionIcon from '@/assets/ui/collection.png'
-import homeIcon from '@/assets/ui/home.png'
-import shopIcon from '@/assets/ui/shop.png'
-import tasksIcon from '@/assets/ui/tasks.png'
+import collectionIcon from '@/assets/ui/nav/collection.png'
+import homeIcon from '@/assets/ui/nav/home.png'
+import shopIcon from '@/assets/ui/nav/shop.png'
+import tasksIcon from '@/assets/ui/nav/tasks.png'
 import type { HubScreen } from '@/game/types/game.types'
 import { applyHubNavActiveState } from '@/shared/animations/gsapPresets'
 import { useGameStore } from '@/stores/game'

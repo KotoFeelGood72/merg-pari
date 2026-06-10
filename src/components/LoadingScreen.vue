@@ -2,11 +2,11 @@
 import gsap from 'gsap'
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
-import logoUrl from '@/assets/logo.png'
-import cat11 from '@/assets/cats/11.png'
-import cat15 from '@/assets/cats/15.png'
-import cat19 from '@/assets/cats/19.png'
-import cat23 from '@/assets/cats/23.png'
+import logoUrl from '@/assets/brand/logo.webp'
+import cat1 from '@/assets/game/cats/1.webp'
+import cat5 from '@/assets/game/cats/5.webp'
+import cat9 from '@/assets/game/cats/9.webp'
+import cat13 from '@/assets/game/cats/13.webp'
 import {
   animateLoadingScreenEnter,
   animateLoadingScreenIdle,
@@ -15,10 +15,10 @@ import {
 } from '@/shared/animations/gsapPresets'
 
 const LOADING_CATS = [
-  { src: cat11, alt: '' },
-  { src: cat15, alt: '' },
-  { src: cat19, alt: '' },
-  { src: cat23, alt: '' },
+  { src: cat1, alt: '' },
+  { src: cat5, alt: '' },
+  { src: cat9, alt: '' },
+  { src: cat13, alt: '' },
 ] as const
 
 const rootRef = ref<HTMLElement | null>(null)
