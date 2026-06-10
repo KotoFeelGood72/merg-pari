@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import adIcon from '@/assets/ui/modals/ad.webp'
 import boosterBomb from '@/assets/ui/boosters/booster-1.webp'
 import boosterRainbow from '@/assets/ui/boosters/booster-2.webp'
 import boosterCookie from '@/assets/ui/boosters/booster-3.webp'
+import { showRewarded } from '@/ads/ads'
 import type { BoosterType } from '@/game/types/booster.types'
 import { useGsapSlideEnter, useGsapStaggerEnter } from '@/composables/useGsapEnter'
 import { useGameStore } from '@/stores/game'
@@ -22,12 +24,32 @@ const barRef = ref<HTMLElement | null>(null)
 useGsapSlideEnter(barRef, 'bottom', 0.1)
 useGsapStaggerEnter(barRef, '.booster-slot', { y: 14, stagger: 0.08, delay: 0.22 })
 
+function boosterCount(type: BoosterType): number {
+  return player.progress.boosters[type]
+}
+
 function activate(type: BoosterType): void {
   if (store.boosterMode === type) {
     store.setBoosterMode(null)
     return
   }
   store.activateBooster(type)
+}
+
+function watchAdForBooster(type: BoosterType): void {
+  const booster = boosters.find((item) => item.type === type)
+  showRewarded(() => {
+    player.addBooster(type, 1)
+    store.showToast(`${booster?.label ?? 'Бустер'} получен!`)
+  })
+}
+
+function onSlotClick(type: BoosterType): void {
+  if (boosterCount(type) <= 0) {
+    watchAdForBooster(type)
+    return
+  }
+  activate(type)
 }
 </script>
 
@@ -40,18 +62,39 @@ function activate(type: BoosterType): void {
         v-gsap-press
         type="button"
         class="booster-slot"
-        :class="{ 'booster-slot--active': store.boosterMode === b.type }"
-        :disabled="player.progress.boosters[b.type] <= 0"
-        :aria-label="`${b.label}: ${b.hint}. ${player.progress.boosters[b.type]} шт.`"
-        @click="activate(b.type)"
+        :class="{
+          'booster-slot--active': store.boosterMode === b.type,
+          'booster-slot--ad': boosterCount(b.type) <= 0,
+        }"
+        :aria-label="
+          boosterCount(b.type) > 0
+            ? `${b.label}: ${b.hint}. ${boosterCount(b.type)} шт.`
+            : `${b.label}: смотреть рекламу и получить бустер`
+        "
+        @click="onSlotClick(b.type)"
       >
         <span class="booster-slot__icon-wrap">
-          <img class="booster-slot__icon" :src="b.icon" alt="" aria-hidden="true" />
-          <span v-if="player.progress.boosters[b.type] > 0" class="booster-slot__count">
-            {{ player.progress.boosters[b.type] }}
+          <img
+            v-if="boosterCount(b.type) > 0"
+            class="booster-slot__icon"
+            :src="b.icon"
+            alt=""
+            aria-hidden="true"
+          />
+          <img
+            v-else
+            class="booster-slot__ad-icon"
+            :src="adIcon"
+            alt=""
+            aria-hidden="true"
+          />
+          <span v-if="boosterCount(b.type) > 0" class="booster-slot__count">
+            {{ boosterCount(b.type) }}
           </span>
         </span>
-        <span class="booster-slot__hint">{{ b.hint }}</span>
+        <span class="booster-slot__hint">
+          {{ boosterCount(b.type) > 0 ? b.hint : 'За рекламу' }}
+        </span>
       </button>
     </div>
   </div>
@@ -85,13 +128,8 @@ function activate(type: BoosterType): void {
   cursor: pointer;
 }
 
-.booster-slot:not(:disabled):hover {
+.booster-slot:hover {
   filter: brightness(1.03);
-}
-
-.booster-slot:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .booster-slot--active {
@@ -101,6 +139,19 @@ function activate(type: BoosterType): void {
     0 0 0 2px rgba(42, 158, 58, 0.28),
     inset 0 2px 5px rgba(255, 255, 255, 0.72),
     0 3px 10px rgba(42, 158, 58, 0.2);
+}
+
+.booster-slot--ad {
+  border-color: #4a9ef0;
+  background: linear-gradient(180deg, #f3f9ff 0%, #dceeff 100%);
+  box-shadow:
+    inset 0 2px 5px rgba(255, 255, 255, 0.82),
+    inset 0 -2px 3px rgba(42, 111, 200, 0.12),
+    0 2px 8px rgba(42, 111, 200, 0.2);
+}
+
+.booster-slot--ad .booster-slot__icon-wrap {
+  background: radial-gradient(circle at 35% 28%, #ffffff 0%, #e8f2ff 58%, #cfe4ff 100%);
 }
 
 .booster-slot__icon-wrap {
@@ -126,6 +177,15 @@ function activate(type: BoosterType): void {
   display: block;
   pointer-events: none;
   filter: drop-shadow(0 2px 3px rgba(40, 24, 10, 0.22));
+}
+
+.booster-slot__ad-icon {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(42, 111, 200, 0.28));
 }
 
 .booster-slot__hint {
@@ -178,6 +238,11 @@ function activate(type: BoosterType): void {
   .booster-slot__icon {
     width: 40px;
     height: 40px;
+  }
+
+  .booster-slot__ad-icon {
+    width: 36px;
+    height: 36px;
   }
 
   .booster-slot__hint {
