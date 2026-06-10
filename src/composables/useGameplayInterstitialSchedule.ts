@@ -1,6 +1,6 @@
 import { onUnmounted, ref, watch, type Ref } from 'vue'
 
-import { adsPlaying, setAdBreakBlocking, showInterstitialThen } from '@/ads/ads'
+import { adsPlaying, msUntilInterstitialReady, setAdBreakBlocking, showScheduledGameplayInterstitialThen } from '@/ads/ads'
 import { pauseMusic, resumeMusic } from '@/audio/sounds'
 import { gameplayPause, gameplayResume, getServerTime } from '@/yandex/sdk'
 
@@ -68,8 +68,19 @@ export function useGameplayInterstitialSchedule(isPlaying: Ref<boolean>) {
     clearScheduleTimer()
     if (!isPlaying.value || isGameplayBlocked.value) return
 
-    nextAdAt = getServerTime() + INTERVAL_MS
+    const cooldownWait = msUntilInterstitialReady({ scheduled: true })
+    nextAdAt = getServerTime() + Math.max(INTERVAL_MS, cooldownWait)
     armScheduleTimer()
+  }
+
+  function deferUntilCooldownReady(): boolean {
+    const cooldownWait = msUntilInterstitialReady({ scheduled: true })
+    if (cooldownWait > 0) {
+      nextAdAt = getServerTime() + cooldownWait
+      armScheduleTimer()
+      return true
+    }
+    return false
   }
 
   function showAdAfterCountdown(): void {
@@ -78,14 +89,10 @@ export function useGameplayInterstitialSchedule(isPlaying: Ref<boolean>) {
     countdownEndsAt = 0
     clearCountdownTimer()
 
-    showInterstitialThen(
-      () => {
-        finishBreak()
-        scheduleNext()
-      },
-      'scheduled_gameplay',
-      { scheduled: true },
-    )
+    showScheduledGameplayInterstitialThen(() => {
+      finishBreak()
+      scheduleNext()
+    })
   }
 
   function syncCountdownFromServerTime(): void {
@@ -102,14 +109,23 @@ export function useGameplayInterstitialSchedule(isPlaying: Ref<boolean>) {
   }
 
   function startCountdown(): void {
-    if (isGameplayBlocked.value || adsPlaying() || !isPlaying.value) {
-      if (!isPlaying.value && nextAdAt > 0) {
+    if (!isPlaying.value) {
+      if (nextAdAt > 0) {
         armScheduleTimer()
       } else {
         scheduleNext()
       }
       return
     }
+
+    if (adsPlaying()) {
+      window.addEventListener('ads:resume', () => startCountdown(), { once: true })
+      return
+    }
+
+    if (isGameplayBlocked.value) return
+
+    if (deferUntilCooldownReady()) return
 
     isGameplayBlocked.value = true
     showCountdown.value = true

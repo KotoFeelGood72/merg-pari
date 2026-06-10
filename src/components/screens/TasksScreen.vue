@@ -11,7 +11,7 @@ import task3Icon from '@/assets/ui/tasks/task-3.png'
 import task4Icon from '@/assets/ui/tasks/task-4.png'
 import task5Icon from '@/assets/ui/tasks/task-5.png'
 import task6Icon from '@/assets/ui/tasks/task-6.png'
-import { showInterstitialThen } from '@/ads/ads'
+import { showRewardClaimInterstitialThen } from '@/ads/ads'
 import { dailyQuests } from '@/game/config/quests'
 import { useGsapStaggerEnter } from '@/composables/useGsapEnter'
 import { useGameStore } from '@/stores/game'
@@ -34,16 +34,12 @@ function claim(quest: (typeof dailyQuests)[number]): void {
   if (!player.isQuestComplete(quest) || player.isQuestClaimed(quest.id)) return
 
   claimingQuestId.value = quest.id
-  showInterstitialThen(
-    () => {
-      claimingQuestId.value = null
-      if (player.claimQuest(quest)) {
-        store.showToast('Награда получена!')
-      }
-    },
-    'quest_reward',
-    { userInitiated: true },
-  )
+  showRewardClaimInterstitialThen(() => {
+    claimingQuestId.value = null
+    if (player.claimQuest(quest)) {
+      store.showToast('Награда получена!')
+    }
+  }, 'quest_reward')
 }
 
 function onQuestCardClick(quest: (typeof dailyQuests)[number]): void {

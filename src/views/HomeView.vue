@@ -19,7 +19,7 @@ import VictoryModal from '@/components/VictoryModal.vue'
 import { isHubState } from '@/game/types/game.types'
 import type { GameEngine } from '@/game/engine/GameEngine'
 import { useGameplayInterstitialSchedule } from '@/composables/useGameplayInterstitialSchedule'
-import { showInterstitialThen, showRewarded, showStartupInterstitial } from '@/ads/ads'
+import { showInterstitialThen, showRestartInterstitialThen, showRewarded, showStartupInterstitial } from '@/ads/ads'
 import { pauseMusic, resumeMusic } from '@/audio/sounds'
 import { useGameStore } from '@/stores/game'
 import { usePlayerStore } from '@/stores/playerStore'
@@ -106,15 +106,11 @@ function onResume(): void {
 }
 
 function onRestart(): void {
-  showInterstitialThen(
-    () => {
-      engineRef.value?.start()
-      store.restartGame()
-      resetSchedule()
-    },
-    'restart',
-    { userInitiated: true },
-  )
+  showRestartInterstitialThen(() => {
+    engineRef.value?.start()
+    store.restartGame()
+    resetSchedule()
+  })
 }
 
 function onMenu(): void {

@@ -5,7 +5,7 @@ import coinIcon from '@/assets/ui/hud/coin.webp'
 import happyIcon from '@/assets/ui/hud/happy.webp'
 import plusIcon from '@/assets/ui/hud/plus.webp'
 import settingsIcon from '@/assets/ui/hud/settings.webp'
-import { showInterstitialThen } from '@/ads/ads'
+import { showRewardClaimInterstitialThen } from '@/ads/ads'
 import { useGameStore } from '@/stores/game'
 import { usePlayerStore } from '@/stores/playerStore'
 
@@ -36,16 +36,12 @@ function onDailyReward(): void {
   const label = player.nextDailyReward.label
 
   claimingDailyReward.value = true
-  showInterstitialThen(
-    () => {
-      claimingDailyReward.value = false
-      if (player.claimDailyReward()) {
-        store.showToast(`День ${dayIndex}: ${label}!`)
-      }
-    },
-    'daily_reward',
-    { userInitiated: true },
-  )
+  showRewardClaimInterstitialThen(() => {
+    claimingDailyReward.value = false
+    if (player.claimDailyReward()) {
+      store.showToast(`День ${dayIndex}: ${label}!`)
+    }
+  }, 'daily_reward')
 }
 </script>
 

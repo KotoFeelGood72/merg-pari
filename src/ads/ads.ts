@@ -14,6 +14,8 @@ export interface InterstitialOptions {
   userInitiated?: boolean
   /** Плановая реклама в геймплее (каждые 2 мин) */
   scheduled?: boolean
+  /** Всегда вызывать SDK, без клиентских кулдаунов (рестарт и т.п.) */
+  forceAttempt?: boolean
 }
 
 let lastInterstitialAt = 0
@@ -58,6 +60,32 @@ export function msSinceLastAd(): number {
   return getServerTime() - lastAnyAdAt
 }
 
+/** Сколько мс ждать до следующего interstitial по общим кулдаунам. */
+export function msUntilInterstitialReady(options?: InterstitialOptions): number {
+  if (adPlaying.value) return 500
+
+  const userInitiated = options?.userInitiated === true
+  if (userInitiated) return 0
+
+  const now = getServerTime()
+  let wait = 0
+
+  const untilFirstAd = FIRST_AD_GAP - (now - getSessionStartMs())
+  if (untilFirstAd > 0) wait = Math.max(wait, untilFirstAd)
+
+  if (lastInterstitialAt > 0) {
+    const untilInterstitial = INTERSTITIAL_MIN_GAP - (now - lastInterstitialAt)
+    if (untilInterstitial > 0) wait = Math.max(wait, untilInterstitial)
+  }
+
+  if (lastAnyAdAt > 0) {
+    const untilAnyAd = INTER_TO_REWARD_GAP - (now - lastAnyAdAt)
+    if (untilAnyAd > 0) wait = Math.max(wait, untilAnyAd)
+  }
+
+  return wait
+}
+
 /**
  * Выполнить callback, когда реклама не идёт и прошёл буфер после последнего показа.
  */
@@ -89,23 +117,27 @@ export function canShowInterstitial(options?: InterstitialOptions): boolean {
   if (adPlaying.value) return false
 
   const userInitiated = options?.userInitiated === true
-  const scheduled = options?.scheduled === true
-  if (import.meta.env.DEV && (userInitiated || scheduled)) return true
-
-  // Явное действие игрока — всегда пробуем показать; частоту контролирует платформа.
+  if (import.meta.env.DEV && userInitiated) return true
   if (userInitiated) return true
 
-  const now = getServerTime()
-  if (now - getSessionStartMs() < FIRST_AD_GAP) return false
+  return msUntilInterstitialReady(options) <= 0
+}
 
-  const minGap = INTERSTITIAL_MIN_GAP
-  if (now - lastInterstitialAt < minGap) return false
-  if (now - lastAnyAdAt < INTER_TO_REWARD_GAP) return false
-  return true
+function markInterstitialShown(): void {
+  lastInterstitialAt = getServerTime()
+  lastAnyAdAt = lastInterstitialAt
 }
 
 function createFullscreenCallbacks(onDone: () => void) {
   let pauseEmitted = false
+  let tracked = false
+
+  const trackShow = (): void => {
+    if (tracked) return
+    tracked = true
+    markInterstitialShown()
+  }
+
   const pauseOnce = () => {
     if (pauseEmitted) return
     pauseEmitted = true
@@ -124,8 +156,14 @@ function createFullscreenCallbacks(onDone: () => void) {
   }
 
   return {
-    onOpen: pauseOnce,
-    onClose: () => finish(),
+    onOpen: () => {
+      trackShow()
+      pauseOnce()
+    },
+    onClose: (wasShown = false) => {
+      if (wasShown) trackShow()
+      finish()
+    },
     onError: () => finish(),
     onOffline: () => finish(),
   }
@@ -150,8 +188,7 @@ export function showStartupInterstitial(onDone?: () => void): void {
   }
 
   startupAdShown = true
-  lastInterstitialAt = getServerTime()
-  lastAnyAdAt = lastInterstitialAt
+  markInterstitialShown()
 
   const ysdk = getYsdk()
   if (!ysdk) {
@@ -183,7 +220,7 @@ export function showInterstitial(_reason?: string, options?: InterstitialOptions
 
 /**
  * Показать полноэкранную рекламу, затем выполнить callback.
- * Для userInitiated всегда вызывает SDK (частоту решает платформа).
+ * forceAttempt / userInitiated — всегда вызывают SDK (частоту решает платформа).
  */
 export function showInterstitialThen(
   onDone: () => void,
@@ -198,6 +235,8 @@ export function showInterstitialThen(
     }
   }
 
+  const forceAttempt = options?.forceAttempt === true || options?.userInitiated === true
+
   if (adPlaying.value) {
     window.addEventListener(
       'ads:resume',
@@ -207,7 +246,7 @@ export function showInterstitialThen(
     return
   }
 
-  if (!canShowInterstitial(options)) {
+  if (!forceAttempt && !canShowInterstitial(options)) {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
       console.info('[ads] interstitial skipped (cooldown)', reason)
@@ -216,9 +255,122 @@ export function showInterstitialThen(
     return
   }
 
-  lastInterstitialAt = getServerTime()
-  lastAnyAdAt = lastInterstitialAt
+  invokeFullscreenInterstitial(finish, reason)
+}
 
+/** Всегда вызывает SDK: без клиентских кулдаунов, с паузой до ответа платформы. */
+function showForcedInterstitialThen(onDone: () => void, reason?: string): void {
+  const finish = () => {
+    try {
+      onDone()
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('[ads] forced interstitial onDone failed', err)
+    }
+  }
+
+  if (adPlaying.value) {
+    window.addEventListener(
+      'ads:resume',
+      () => showForcedInterstitialThen(onDone, reason),
+      { once: true },
+    )
+    return
+  }
+
+  let paused = false
+  const pause = (): void => {
+    if (paused) return
+    paused = true
+    emitPause()
+  }
+  const resume = (): void => {
+    if (!paused) return
+    paused = false
+    emitResume()
+  }
+  const done = (): void => {
+    resume()
+    finish()
+  }
+
+  pause()
+
+  const ysdk = getYsdk()
+  if (!ysdk) {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.info('[ads] forced interstitial (dev stub)', reason)
+      window.setTimeout(() => {
+        markInterstitialShown()
+        done()
+      }, 1200)
+      return
+    }
+    done()
+    return
+  }
+
+  let tracked = false
+  try {
+    ysdk.adv.showFullscreenAdv({
+      callbacks: {
+        onOpen: () => {
+          if (!tracked) {
+            tracked = true
+            markInterstitialShown()
+          }
+        },
+        onClose: (wasShown = false) => {
+          if (wasShown && !tracked) {
+            tracked = true
+            markInterstitialShown()
+          }
+          done()
+        },
+        onError: () => done(),
+        onOffline: () => done(),
+      },
+    })
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[ads] forced interstitial failed', err)
+    done()
+  }
+}
+
+/** Реклама перед рестартом — SDK вызывается каждый раз. */
+export function showRestartInterstitialThen(onDone: () => void): void {
+  showForcedInterstitialThen(onDone, 'restart')
+}
+
+/** Реклама перед получением награды — SDK вызывается при каждом «Забрать». */
+export function showRewardClaimInterstitialThen(
+  onDone: () => void,
+  reason: 'quest_reward' | 'daily_reward' = 'quest_reward',
+): void {
+  showForcedInterstitialThen(onDone, reason)
+}
+
+/** Плановая реклама в геймплее — через общий кулдаун, с ожиданием готовности. */
+export function showScheduledGameplayInterstitialThen(onDone: () => void): void {
+  const attempt = (): void => {
+    if (adPlaying.value) {
+      window.addEventListener('ads:resume', attempt, { once: true })
+      return
+    }
+
+    const wait = msUntilInterstitialReady({ scheduled: true })
+    if (wait > 0) {
+      window.setTimeout(attempt, wait)
+      return
+    }
+
+    showInterstitialThen(onDone, 'scheduled_gameplay', { scheduled: true })
+  }
+
+  attempt()
+}
+
+function invokeFullscreenInterstitial(finish: () => void, reason?: string): void {
   const ysdk = getYsdk()
   if (!ysdk) {
     if (import.meta.env.DEV) {
@@ -226,6 +378,7 @@ export function showInterstitialThen(
       console.info('[ads] interstitial (dev stub)', reason)
       emitPause()
       window.setTimeout(() => {
+        markInterstitialShown()
         emitResume()
         finish()
       }, 1200)
