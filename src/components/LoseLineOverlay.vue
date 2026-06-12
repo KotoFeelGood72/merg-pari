@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { GAME_HEIGHT, GAME_WIDTH, LOSE_LINE_Y } from '@/game/config/gameConfig'
+import { GAME_WIDTH, LOSE_LINE_Y } from '@/game/config/gameConfig'
 
 const props = defineProps<{
   progress?: number
   displayWidth: number
   displayHeight: number
+  gameWorldHeight: number
 }>()
 
 const lineStyle = computed(() => {
@@ -14,7 +15,7 @@ const lineStyle = computed(() => {
     return { top: '0px', '--line-scale': '1' }
   }
 
-  const topPx = (LOSE_LINE_Y / GAME_HEIGHT) * props.displayHeight
+  const topPx = (LOSE_LINE_Y / props.gameWorldHeight) * props.displayHeight
   const scale = props.displayWidth / GAME_WIDTH
 
   return {

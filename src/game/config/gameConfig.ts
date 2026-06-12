@@ -5,6 +5,10 @@ export { MAX_LEVEL }
 
 export const GAME_WIDTH = 390
 export const GAME_HEIGHT = 720
+/** Высота поля только на мобильных (пропорции под ширину экрана). */
+export const MOBILE_GAME_HEIGHT = 580
+export const MOBILE_MIN_GAME_HEIGHT = 480
+export const MOBILE_LAYOUT_MAX_WIDTH = 767
 
 export const LOSE_LINE_Y = balanceConfig.loseLineY
 /** Высота зоны сброса: от верха поля до линии проигрыша */
@@ -12,7 +16,6 @@ export const DROP_ZONE_HEIGHT = LOSE_LINE_Y
 /** Котик по центру зоны сброса */
 export const DROP_Y = DROP_ZONE_HEIGHT / 2
 export const DROP_INITIAL_VELOCITY = 9
-export const PREVIEW_FOLLOW_LAMBDA = 16
 export const PREVIEW_BOB_AMPLITUDE = 3
 export const PREVIEW_BOB_SPEED = 4.2
 export const PREVIEW_CLEARANCE = 28

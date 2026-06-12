@@ -8,18 +8,13 @@ import router from './router'
 import { vGsapPress } from '@/directives/gsapPress'
 import { gameplayPause, gameplayResume } from '@/yandex/sdk'
 import { bindProgressLifecycle } from '@/yandex/progressLifecycle'
+import { bindPreventPullToRefresh } from '@/shared/utils/preventPullToRefresh'
 
 window.addEventListener('contextmenu', (e) => e.preventDefault())
 window.addEventListener('selectstart', (e) => e.preventDefault())
 window.addEventListener('dragstart', (e) => e.preventDefault())
 window.addEventListener('gesturestart', (e) => e.preventDefault())
-document.addEventListener(
-  'touchmove',
-  (e) => {
-    if (e.touches.length > 1) e.preventDefault()
-  },
-  { passive: false },
-)
+bindPreventPullToRefresh()
 
 const app = createApp(App)
 app.directive('gsap-press', vGsapPress)

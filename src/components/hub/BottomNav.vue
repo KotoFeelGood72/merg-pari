@@ -54,7 +54,13 @@ function navigate(screen: HubScreen): void {
   position: sticky;
   bottom: 0;
   width: 100%;
-  padding: 6px 0 max(4px, var(--app-safe-bottom));
+  padding: 8px 0 max(6px, var(--app-safe-bottom));
+}
+
+@media (max-width: 767px) {
+  .hub-nav {
+    padding: 6px 0 max(4px, var(--app-safe-bottom));
+  }
 }
 
 .hub-nav__item {
@@ -103,21 +109,32 @@ function navigate(screen: HubScreen): void {
 
 .hub-nav__badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -5px;
+  right: -5px;
   z-index: 2;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 3px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
   border-radius: 19px;
   background: linear-gradient(180deg, #ff6b6b, #e53935);
   border: 2px solid rgba(255, 255, 255, 0.85);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(198, 40, 40, 0.45);
+}
+
+@media (max-width: 767px) {
+  .hub-nav__badge {
+    top: -4px;
+    right: -4px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 3px;
+    font-size: 9px;
+  }
 }
 </style>

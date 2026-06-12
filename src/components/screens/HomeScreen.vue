@@ -79,12 +79,13 @@ function onPlay(): void {
 }
 
 .home__play-wrap {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   width: 100%;
-  padding: clamp(8px, 1.5vh, 14px) 0 clamp(4px, 1vh, 8px);
+  min-height: 0;
+  padding: clamp(10px, 2vh, 18px) 0 clamp(6px, 1.5vh, 12px);
 }
 
 .home__logo-img {
@@ -112,14 +113,28 @@ function onPlay(): void {
 
 .home__cats {
   display: block;
-  flex: 1 1 auto;
-  width: min(100%, 280px);
+  flex: 0 1 auto;
+  width: min(100%, 340px);
   min-height: 0;
-  max-height: min(34vh, 210px);
+  max-height: min(48vh, 320px);
   height: auto;
-  margin-top: auto;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .home__play-wrap {
+    flex: 0 0 auto;
+    align-items: center;
+    padding: clamp(8px, 1.5vh, 14px) 0 clamp(4px, 1vh, 8px);
+  }
+
+  .home__cats {
+    flex: 1 1 auto;
+    width: min(100%, 280px);
+    max-height: min(34vh, 210px);
+    margin-top: auto;
+  }
 }
 </style>

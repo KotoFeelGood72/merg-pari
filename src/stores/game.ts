@@ -28,10 +28,6 @@ export const useGameStore = defineStore('game', () => {
     () => continueCountThisSession.value < MAX_CONTINUE_PER_SESSION,
   )
 
-  const remainingAdContinues = computed(
-    () => Math.max(0, MAX_CONTINUE_PER_SESSION - continueCountThisSession.value),
-  )
-
   function showToast(message: string): void {
     toastMessage.value = message
     setTimeout(() => {
@@ -188,8 +184,6 @@ export const useGameStore = defineStore('game', () => {
     boosterMode,
     toastMessage,
     victoryLevel,
-    continueCountThisSession,
-    remainingAdContinues,
     canContinueWithAd,
     startGame,
     goToMenu,

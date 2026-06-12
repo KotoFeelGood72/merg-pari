@@ -50,7 +50,10 @@ useGsapHubShell(layoutRef, headerRef, contentRef, navRef)
 .hub-layout {
   display: flex;
   justify-content: center;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .hub-layout__column {

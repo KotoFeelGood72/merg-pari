@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import ComboCalloutOverlay from '@/components/ComboCalloutOverlay.vue'
 import LoseLineOverlay from '@/components/LoseLineOverlay.vue'
 import { preloadCatSprites } from '@/game/assets/catSprites'
 import { fallEffectPlayer } from '@/game/effects/fallEffectPlayer'
-import { GAME_HEIGHT, GAME_WIDTH } from '@/game/config/gameConfig'
+import {
+  getGameHeight,
+  getGameWidth,
+  initGameViewport,
+  isMobileGameLayout,
+} from '@/game/config/gameViewport'
 import { GameEngine } from '@/game/engine/GameEngine'
 import type { ComboCallout } from '@/game/types/game.types'
 import { useGameStore } from '@/stores/game'
@@ -16,7 +21,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   engineReady: [engine: GameEngine]
-  layoutChange: [size: { width: number; height: number }]
 }>()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -26,6 +30,7 @@ const store = useGameStore()
 const loseProgress = ref(0)
 const displayWidth = ref(0)
 const displayHeight = ref(0)
+const gameWorldHeight = ref(720)
 const comboCallout = ref<ComboCallout | null>(null)
 
 let engine: GameEngine | null = null
@@ -40,8 +45,8 @@ function getCanvasPoint(clientX: number, clientY: number): { x: number; y: numbe
   const rect = canvas.getBoundingClientRect()
   if (rect.width <= 0 || rect.height <= 0) return null
   return {
-    x: ((clientX - rect.left) / rect.width) * GAME_WIDTH,
-    y: ((clientY - rect.top) / rect.height) * GAME_HEIGHT,
+    x: ((clientX - rect.left) / rect.width) * getGameWidth(),
+    y: ((clientY - rect.top) / rect.height) * getGameHeight(),
   }
 }
 
@@ -84,26 +89,28 @@ function applyCanvasLayout(): void {
   const height = slot.clientHeight
   if (width <= 0 || height <= 0) return
 
-  const scale = Math.min(width / GAME_WIDTH, height / GAME_HEIGHT)
-  const w = Math.min(Math.round(GAME_WIDTH * scale), width)
-  const h = Math.min(Math.round(GAME_HEIGHT * scale), height)
+  const worldWidth = getGameWidth()
+  const worldHeight = getGameHeight()
+
+  let w = width
+  let h = Math.round((w / worldWidth) * worldHeight)
+  if (h > height) {
+    h = height
+    w = Math.round((h / worldHeight) * worldWidth)
+  }
 
   displayWidth.value = w
   displayHeight.value = h
 
   frame.style.width = `${w}px`
   frame.style.height = `${h}px`
-  frame.style.maxHeight = `${height}px`
+  frame.style.maxHeight = 'none'
 
   const ctx = canvas.getContext('2d')
   if (ctx && engine) {
     engine.render(ctx)
   }
 
-  emit('layoutChange', {
-    width: frame.offsetWidth,
-    height: frame.offsetHeight,
-  })
 }
 
 function scheduleCanvasLayout(): void {
@@ -158,7 +165,8 @@ function renderLoop(): void {
 }
 
 function createEngine(): GameEngine {
-  return new GameEngine({
+  return new GameEngine(
+    {
     onScore: (points, combo) => store.addScore(points, combo),
     onCoins: (amount) => store.addCoins(amount),
     onGameOver: () => store.gameOver(),
@@ -169,15 +177,22 @@ function createEngine(): GameEngine {
     onComboCallout: (callout) => {
       comboCallout.value = callout
     },
-  })
+  },
+    getGameHeight(),
+  )
 }
 
 onMounted(async () => {
   const canvas = canvasRef.value
   if (!canvas) return
 
-  canvas.width = GAME_WIDTH
-  canvas.height = GAME_HEIGHT
+  await nextTick()
+
+  const slot = playSlotRef.value
+  initGameViewport(slot?.clientWidth, slot?.clientHeight)
+  gameWorldHeight.value = getGameHeight()
+  canvas.width = getGameWidth()
+  canvas.height = getGameHeight()
 
   await Promise.all([preloadCatSprites(), fallEffectPlayer.preload()])
 
@@ -253,11 +268,13 @@ defineExpose({
           :callout="comboCallout"
           :display-width="displayWidth"
           :display-height="displayHeight"
+          :game-world-height="gameWorldHeight"
         />
         <LoseLineOverlay
           :progress="loseProgress"
           :display-width="displayWidth"
           :display-height="displayHeight"
+          :game-world-height="gameWorldHeight"
         />
       </div>
     </div>
@@ -271,17 +288,35 @@ defineExpose({
   width: 100%;
   display: flex;
   align-items: flex-start;
-  justify-content: stretch;
+  justify-content: center;
+}
+
+@media (max-width: 767px) {
+  .game-play-slot {
+    align-items: center;
+    justify-content: stretch;
+  }
+
+  .game-frame {
+    margin-inline: auto;
+  }
 }
 
 .game-frame {
   flex-shrink: 0;
-  width: 100%;
+  width: auto;
   max-width: 100%;
   max-height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .game-frame {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 .game-frame__inner {

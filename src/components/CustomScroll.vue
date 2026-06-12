@@ -150,14 +150,15 @@ let touchStartY = 0
 let touchStartScroll = 0
 
 function onTouchStart(e: TouchEvent) {
-  if (!canScroll.value || e.touches.length !== 1) return
+  if (e.touches.length !== 1) return
   touchStartY = e.touches[0]!.clientY
   touchStartScroll = scrollTop.value
 }
 
 function onTouchMove(e: TouchEvent) {
-  if (!canScroll.value || e.touches.length !== 1) return
+  if (e.touches.length !== 1) return
   e.preventDefault()
+  if (!canScroll.value) return
   const delta = touchStartY - e.touches[0]!.clientY
   scrollTop.value = clampScroll(touchStartScroll + delta)
 }

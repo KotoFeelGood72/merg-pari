@@ -225,7 +225,7 @@ function onSlotClick(type: BoosterType): void {
   pointer-events: none;
 }
 
-@media (max-height: 740px) {
+@media (max-width: 767px) and (max-height: 740px) {
   .booster-slot {
     gap: 3px;
     padding: 5px 3px 4px;
@@ -249,13 +249,42 @@ function onSlotClick(type: BoosterType): void {
   }
 
   .booster-slot__hint {
-    font-size: 8px;
+    display: none;
   }
 
   .booster-slot__count {
     min-width: 18px;
     height: 18px;
     font-size: 10px;
+  }
+}
+
+@media (max-width: 767px) and (max-height: 620px) {
+  .booster-panel {
+    gap: 4px;
+  }
+
+  .booster-slot {
+    gap: 0;
+    padding: 4px 2px 3px;
+    border-radius: 10px;
+  }
+
+  .booster-slot__icon-wrap {
+    width: 40px;
+    height: 40px;
+  }
+
+  .booster-slot__icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .booster-slot__ad-badge {
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
   }
 }
 </style>

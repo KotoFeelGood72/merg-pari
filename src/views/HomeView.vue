@@ -36,7 +36,6 @@ const player = usePlayerStore()
 
 const showSettings = ref(false)
 const engineRef = ref<GameEngine | null>(null)
-const gameContainerWidth = ref<number | null>(null)
 const gameCanvasRef = ref<InstanceType<typeof GameCanvas> | null>(null)
 const gameScreenRef = ref<HTMLElement | null>(null)
 
@@ -62,9 +61,9 @@ onMounted(() => {
   syncMusicWithGameState(store.gameState)
   showStartupInterstitial()
 
-  window.addEventListener('resize', resetGameContainerLayout, { passive: true })
-  window.addEventListener('orientationchange', resetGameContainerLayout, { passive: true })
-  window.visualViewport?.addEventListener('resize', resetGameContainerLayout, { passive: true })
+  window.addEventListener('resize', onGameViewportResize, { passive: true })
+  window.addEventListener('orientationchange', onGameViewportResize, { passive: true })
+  window.visualViewport?.addEventListener('resize', onGameViewportResize, { passive: true })
 })
 
 function onEngineReady(engine: GameEngine): void {
@@ -142,22 +141,15 @@ function onVictoryContinue(): void {
   engineRef.value?.resumePhysics()
 }
 
-function onGameLayout(size: { width: number; height: number }): void {
-  gameContainerWidth.value = size.width
-}
-
-function resetGameContainerLayout(): void {
-  gameContainerWidth.value = null
+function onGameViewportResize(): void {
   nextTick(() => gameCanvasRef.value?.relayout())
 }
 
 watch(showGameScreen, async (show) => {
-  if (!show) {
-    gameContainerWidth.value = null
-    return
-  }
+  if (!show) return
 
   await nextTick()
+  gameCanvasRef.value?.relayout()
   if (gameScreenRef.value) {
     gsap.fromTo(
       gameScreenRef.value,
@@ -168,9 +160,9 @@ watch(showGameScreen, async (show) => {
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', resetGameContainerLayout)
-  window.removeEventListener('orientationchange', resetGameContainerLayout)
-  window.visualViewport?.removeEventListener('resize', resetGameContainerLayout)
+  window.removeEventListener('resize', onGameViewportResize)
+  window.removeEventListener('orientationchange', onGameViewportResize)
+  window.visualViewport?.removeEventListener('resize', onGameViewportResize)
 })
 </script>
 
@@ -188,16 +180,12 @@ onUnmounted(() => {
 
     <div v-else-if="showGameScreen" ref="gameScreenRef" class="game-screen scene-bg">
       <div class="scene-column game-screen__column">
-        <div
-          class="game-screen__container"
-          :style="gameContainerWidth ? { width: `${gameContainerWidth}px` } : undefined"
-        >
+        <div class="game-screen__container">
           <GameHud @pause="onPause" />
           <GameCanvas
             ref="gameCanvasRef"
             :active="isCanvasActive"
             @engine-ready="onEngineReady"
-            @layout-change="onGameLayout"
           />
           <BoosterPanel />
         </div>
@@ -237,7 +225,10 @@ onUnmounted(() => {
 <style scoped>
 .app-shell {
   width: 100%;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .game-screen {
@@ -274,6 +265,24 @@ onUnmounted(() => {
   height: 100%;
   max-height: 100%;
   min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .game-screen__container {
+    width: var(--game-column-width);
+    max-width: var(--game-column-width);
+  }
+}
+
+@media (max-width: 767px) {
+  .game-screen__column {
+    align-items: stretch;
+    max-width: 100%;
+  }
+
+  .game-screen__container {
+    max-width: 100%;
+  }
 }
 
 .game-screen__container :deep(.game-hud) {

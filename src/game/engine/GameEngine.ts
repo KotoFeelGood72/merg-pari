@@ -17,7 +17,6 @@ import {
   PREVIEW_BOB_AMPLITUDE,
   PREVIEW_BOB_SPEED,
   PREVIEW_CLEARANCE,
-  PREVIEW_FOLLOW_LAMBDA,
 } from '@/game/config/gameConfig'
 import { balanceConfig } from '@/game/config/balanceConfig'
 import { createPhysicsWorld } from '@/game/engine/createPhysicsWorld'
@@ -88,8 +87,14 @@ export class GameEngine {
     }
   }
 
-  constructor(private callbacks: GameEngineCallbacks) {
-    const { engine, world } = createPhysicsWorld()
+  private readonly gameHeight: number
+
+  constructor(
+    private callbacks: GameEngineCallbacks,
+    gameHeight: number = GAME_HEIGHT,
+  ) {
+    this.gameHeight = gameHeight
+    const { engine, world } = createPhysicsWorld(gameHeight)
     this.engine = engine
     this.world = world
     this.setupCollisions()
@@ -209,7 +214,7 @@ export class GameEngine {
     for (const item of snapshot) {
       this.spawnObject(item.level, item.x, item.y)
     }
-    alignFieldToFloor(this.objects)
+    alignFieldToFloor(this.objects, this.gameHeight)
     zeroAllVelocities(this.objects)
     resetObjectsAge(this.objects)
 
@@ -259,6 +264,7 @@ export class GameEngine {
       this.getLoseProgress(now),
       now,
       this.isDragging && !this.boosterMode,
+      this.gameHeight,
     )
   }
 
@@ -287,15 +293,12 @@ export class GameEngine {
     this.nextObject.targetX = clamp(x, radius, GAME_WIDTH - radius)
   }
 
-  private updatePreviewMotion(deltaMs: number, timeSec: number): void {
+  private updatePreviewMotion(_deltaMs: number, timeSec: number): void {
     if (!this.nextObject || !this.showPreview) return
 
     const preview = this.nextObject
-    const dt = Math.max(deltaMs / 1000, 0.001)
-    const follow = 1 - Math.exp(-PREVIEW_FOLLOW_LAMBDA * dt)
-    const prevX = preview.x
-    preview.x += (preview.targetX - preview.x) * follow
-    preview.velocityX = (preview.x - prevX) / dt
+    preview.x = preview.targetX
+    preview.velocityX = 0
     preview.tilt = 0
     preview.y = DROP_Y + Math.sin(timeSec * PREVIEW_BOB_SPEED) * PREVIEW_BOB_AMPLITUDE
   }
@@ -309,7 +312,7 @@ export class GameEngine {
     }
 
     const level = this.nextObject.level
-    const x = this.nextObject.x
+    const x = this.nextObject.targetX
     const dropped = this.spawnObject(level, x, DROP_Y)
     this.applyPlayerDropImpulse(dropped)
 
@@ -462,11 +465,11 @@ export class GameEngine {
       const col = i % 5
       const row = Math.floor(i / 5)
       const x = GAME_WIDTH / 2 + (col - 2) * 34 + (row % 2 === 0 ? 0 : 14)
-      const y = GAME_HEIGHT - 58 - row * 28
+      const y = this.gameHeight - 58 - row * 28
       this.spawnObject(level, x, y)
     }
 
-    alignFieldToFloor(this.objects)
+    alignFieldToFloor(this.objects, this.gameHeight)
     this.raiseFieldNearLoseLine()
     zeroAllVelocities(this.objects)
 
@@ -512,9 +515,8 @@ export class GameEngine {
 
   private applyPlayerDropImpulse(obj: MergeObject): void {
     obj.showDropTrail = true
-    const carryX = this.nextObject?.velocityX ?? 0
     Matter.Body.setVelocity(obj.body, {
-      x: clamp(carryX * 0.15, -2.5, 2.5),
+      x: 0,
       y: DROP_INITIAL_VELOCITY,
     })
   }
@@ -522,6 +524,9 @@ export class GameEngine {
   private updateDropTrails(): void {
     for (const obj of this.objects) {
       if (!obj.showDropTrail) continue
+      if (obj.body.velocity.x !== 0) {
+        Matter.Body.setVelocity(obj.body, { x: 0, y: obj.body.velocity.y })
+      }
       const vy = obj.body.velocity.y
       const slowEnough = vy < 1.2 && obj.body.position.y > DROP_Y + obj.radius + PREVIEW_CLEARANCE
       if (slowEnough || Date.now() - obj.createdAt > 1200) {
@@ -616,7 +621,7 @@ export class GameEngine {
   }
 
   private isObjectSupported(obj: MergeObject): boolean {
-    const floorY = GAME_HEIGHT - obj.radius - 4
+    const floorY = this.gameHeight - obj.radius - 4
     if (obj.body.position.y >= floorY) return true
 
     for (const other of this.objects) {

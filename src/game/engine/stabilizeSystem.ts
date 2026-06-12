@@ -20,10 +20,10 @@ export function resetObjectsAge(objects: MergeObject[], now = Date.now()): void 
 }
 
 /** Сдвигает всю кучу вниз к полу, сохраняя форму. */
-export function alignFieldToFloor(objects: MergeObject[]): void {
+export function alignFieldToFloor(objects: MergeObject[], gameHeight = GAME_HEIGHT): void {
   if (objects.length === 0) return
 
-  const floorBottom = GAME_HEIGHT - BOUNDS_PADDING
+  const floorBottom = gameHeight - BOUNDS_PADDING
   let lowestBottom = -Infinity
 
   for (const obj of objects) {

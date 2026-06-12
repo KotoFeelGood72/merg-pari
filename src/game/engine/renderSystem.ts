@@ -21,9 +21,10 @@ export function renderFrame(
   loseProgress: number,
   now: number,
   showAimLine = false,
+  gameHeight = GAME_HEIGHT,
 ): void {
-  ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-  drawFieldBackground(ctx)
+  ctx.clearRect(0, 0, GAME_WIDTH, gameHeight)
+  drawFieldBackground(ctx, gameHeight)
 
   if (loseProgress > 0) {
     ctx.fillStyle = `rgba(255, 60, 60, ${loseProgress * 0.12})`
@@ -39,7 +40,7 @@ export function renderFrame(
 
   if (showAimLine && showPreview && nextObject) {
     const def = getLevelDef(nextObject.level)
-    drawDropTrajectory(ctx, nextObject.x, nextObject.y, def.radius)
+    drawDropTrajectory(ctx, nextObject.targetX, nextObject.y, def.radius, gameHeight)
   }
 
   if (showPreview && nextObject) {
@@ -53,18 +54,18 @@ export function renderFrame(
   }
 }
 
-function drawFieldBackground(ctx: CanvasRenderingContext2D): void {
+function drawFieldBackground(ctx: CanvasRenderingContext2D, gameHeight: number): void {
   const bg = getGameFieldBackground()
   if (bg && bg.complete && bg.naturalWidth > 0) {
-    ctx.drawImage(bg, 0, 0, GAME_WIDTH, GAME_HEIGHT)
+    ctx.drawImage(bg, 0, 0, GAME_WIDTH, gameHeight)
     return
   }
 
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT)
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, gameHeight)
   bgGrad.addColorStop(0, FIELD_TOP)
   bgGrad.addColorStop(1, FIELD_BOTTOM)
   ctx.fillStyle = bgGrad
-  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
+  ctx.fillRect(0, 0, GAME_WIDTH, gameHeight)
 }
 
 function drawScorePopup(
@@ -152,9 +153,10 @@ function drawDropTrajectory(
   x: number,
   previewY: number,
   radius: number,
+  gameHeight: number,
 ): void {
   const startY = previewY + radius + 6
-  const endY = GAME_HEIGHT - 8
+  const endY = gameHeight - 8
 
   ctx.save()
   ctx.beginPath()

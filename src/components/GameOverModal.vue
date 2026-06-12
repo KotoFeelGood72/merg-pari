@@ -168,7 +168,7 @@ function formatScore(value: number): string {
 
 .game-over-modal__ad-btn {
   display: grid;
-  grid-template-columns: 36px 1fr 36px;
+  grid-template-columns: 36px 1fr;
   align-items: center;
   gap: 8px;
   width: 100%;

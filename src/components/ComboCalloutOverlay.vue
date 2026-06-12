@@ -4,7 +4,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import { COMBO_CALLOUT_Y_RATIO } from '@/game/config/comboCallouts'
 import { getComboCalloutStyle } from '@/game/config/comboCalloutStyles'
-import { GAME_HEIGHT, GAME_WIDTH, LOSE_LINE_Y } from '@/game/config/gameConfig'
+import { GAME_WIDTH, LOSE_LINE_Y } from '@/game/config/gameConfig'
 import type { ComboCallout } from '@/game/types/game.types'
 import { animateComboCallout } from '@/shared/animations/gsapPresets'
 
@@ -12,6 +12,7 @@ const props = defineProps<{
   callout: ComboCallout | null
   displayWidth: number
   displayHeight: number
+  gameWorldHeight: number
 }>()
 
 const motionRef = ref<HTMLElement | null>(null)
@@ -30,7 +31,7 @@ const anchorStyle = computed(() => {
   }
 
   const comboY = LOSE_LINE_Y * COMBO_CALLOUT_Y_RATIO
-  const topPx = (comboY / GAME_HEIGHT) * props.displayHeight
+  const topPx = (comboY / props.gameWorldHeight) * props.displayHeight
 
   return {
     top: `${topPx}px`,

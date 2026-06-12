@@ -21,6 +21,9 @@
   height: 100dvh;
   margin: 0 auto;
   padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
   font-family: var(--font-game);
   font-weight: 600;
 }
