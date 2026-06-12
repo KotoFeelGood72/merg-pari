@@ -54,7 +54,7 @@ function navigate(screen: HubScreen): void {
   position: sticky;
   bottom: 0;
   width: 100%;
-  padding: 8px 0 max(6px, var(--app-safe-bottom));
+  padding: 6px 0 max(4px, var(--app-safe-bottom));
 }
 
 .hub-nav__item {
@@ -103,16 +103,16 @@ function navigate(screen: HubScreen): void {
 
 .hub-nav__badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -4px;
+  right: -4px;
   z-index: 2;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
   border-radius: 19px;
   background: linear-gradient(180deg, #ff6b6b, #e53935);
   border: 2px solid rgba(255, 255, 255, 0.85);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   color: #fff;
   display: flex;

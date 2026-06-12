@@ -79,13 +79,12 @@ function onPlay(): void {
 }
 
 .home__play-wrap {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 0;
-  padding: clamp(10px, 2vh, 18px) 0 clamp(6px, 1.5vh, 12px);
+  padding: clamp(8px, 1.5vh, 14px) 0 clamp(4px, 1vh, 8px);
 }
 
 .home__logo-img {
@@ -113,11 +112,12 @@ function onPlay(): void {
 
 .home__cats {
   display: block;
-  flex: 0 1 auto;
-  width: min(100%, 340px);
+  flex: 1 1 auto;
+  width: min(100%, 280px);
   min-height: 0;
-  max-height: min(48vh, 320px);
+  max-height: min(34vh, 210px);
   height: auto;
+  margin-top: auto;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;

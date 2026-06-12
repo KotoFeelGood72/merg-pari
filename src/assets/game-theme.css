@@ -61,10 +61,10 @@
   --app-content-padding-top: 12px;
   --app-content-padding-bottom: 20px;
   /* Нижняя навигация: квадратные кнопки (4 шт. в ряд на ~360px) */
-  --nav-icon-size: clamp(68px, 21vw, 84px);
+  --nav-icon-size: clamp(52px, 15vw, 62px);
   --nav-icon-width: var(--nav-icon-size);
   --nav-icon-height: var(--nav-icon-size);
-  --hub-nav-total-height: calc(8px + var(--nav-icon-size) + max(6px, var(--app-safe-bottom)));
+  --hub-nav-total-height: calc(6px + var(--nav-icon-size) + max(4px, var(--app-safe-bottom)));
   --game-toast-gap: 22px;
 }
 
@@ -89,7 +89,7 @@
 
   :root {
     --game-column-width: 480px;
-    --nav-icon-size: 100px;
+    --nav-icon-size: 72px;
   }
 }
 
