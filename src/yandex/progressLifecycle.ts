@@ -9,7 +9,7 @@ function flushProgressAndLeaderboard(): void {
   void syncLeaderboardBest(player.progress.bestScore)
 }
 
-/** Сохранить прогресс и рекорд при сворачивании / закрытии вкладки. */
+
 export function bindProgressLifecycle(): void {
   if (bound) return
   bound = true

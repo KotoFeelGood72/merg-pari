@@ -1,6 +1,4 @@
-// Thin wrapper around the Yandex Games SDK.
-// In dev (or any page without window.YaGames) returns null and we fall back
-// to dev stubs in the ads module.
+
 
 export interface YsdkFullscreenCallbacks {
   onOpen?: () => void
@@ -45,7 +43,7 @@ export interface Ysdk {
   getLeaderboards?(): Promise<unknown>
   on?(event: 'game_api_pause' | 'game_api_resume', callback: () => void): void
   off?(event: 'game_api_pause' | 'game_api_resume', callback: () => void): void
-  /** Серверное время в мс — защищено от подмены системных часов. */
+
   serverTime(): number
 }
 
@@ -61,7 +59,6 @@ let lang: string = 'ru'
 let initPromise: Promise<Ysdk | null> | null = null
 let sessionStartMs: number | null = null
 
-/** Серверное время Yandex SDK; в dev без SDK — локальное время. */
 export function getServerTime(): number {
   try {
     return ysdk?.serverTime() ?? Date.now()
@@ -70,7 +67,6 @@ export function getServerTime(): number {
   }
 }
 
-/** Момент старта сессии по серверному времени (для кулдаунов рекламы). */
 export function getSessionStartMs(): number {
   if (sessionStartMs === null) {
     sessionStartMs = getServerTime()
@@ -92,11 +88,6 @@ function bindPlatformPauseEvents(sdk: Ysdk): void {
   sdk.on('game_api_resume', onResume)
 }
 
-/**
- * Wait for `window.YaGames` to become available. The SDK <script> tag is
- * synchronous in index.html, so it should be ready by the time this runs,
- * but we poll briefly to be resilient against slow networks / CDN hiccups.
- */
 function waitForYaGames(timeoutMs = 5000): Promise<unknown | null> {
   if ((window as any).YaGames) return Promise.resolve((window as any).YaGames)
   return new Promise((resolve) => {
@@ -153,16 +144,9 @@ export function isYsdkReady(): boolean {
   return ysdk !== null
 }
 
-/** Язык игрока, полученный из ysdk.environment.i18n.lang. Дефолт — 'ru' до инициализации/в dev. */
 export function getLang(): string {
   return lang
 }
-
-// Reference-counted gameplay state. Yandex's GameplayAPI must see strictly
-// alternating start/stop calls — if we naively call start/stop from each
-// source (modal, ad, visibility) they overlap and Yandex ends up "stuck".
-// Instead we track pause depth and only emit start when ALL pause sources
-// have resumed.
 
 let gameplayInitDone = false
 let gameplayPauseDepth = 0
@@ -183,20 +167,17 @@ function syncGameplay() {
   }
 }
 
-/** Call ONCE when the game is ready to start. Subsequent calls are no-ops. */
 export function gameplayInit(): void {
   if (gameplayInitDone) return
   gameplayInitDone = true
   syncGameplay()
 }
 
-/** Reference-counted. Push for every pause source (modal open, ad shown, tab hidden). */
 export function gameplayPause(): void {
   gameplayPauseDepth++
   syncGameplay()
 }
 
-/** Reference-counted. Pop when a pause source resolves (modal closed, ad closed, tab visible). */
 export function gameplayResume(): void {
   if (gameplayPauseDepth === 0) return
   gameplayPauseDepth--
@@ -205,7 +186,6 @@ export function gameplayResume(): void {
 
 let reviewRequested = false
 
-/** Можно ли показать нашу модалку с предложением оценить (без вызова SDK-диалога). */
 export async function checkCanReview(): Promise<boolean> {
   if (reviewRequested) return false
   const sdk = getYsdk()
@@ -218,7 +198,6 @@ export async function checkCanReview(): Promise<boolean> {
   }
 }
 
-/** Нативное окно оценки Яндекс Игр (после нажатия «Оценить» в нашей модалке). */
 export async function openPlatformReview(): Promise<boolean> {
   if (reviewRequested) return false
   const sdk = getYsdk()
@@ -247,7 +226,6 @@ export async function openPlatformReview(): Promise<boolean> {
   }
 }
 
-/** @deprecated Используйте tryShowPlatformReviewWhenSafe из @/yandex/reviewPrompt */
 export async function tryRequestReview(): Promise<void> {
   const { tryShowPlatformReviewWhenSafe } = await import('@/yandex/reviewPrompt')
   tryShowPlatformReviewWhenSafe()

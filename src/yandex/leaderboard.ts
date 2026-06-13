@@ -1,7 +1,7 @@
 import { getYsdk } from '@/yandex/sdk'
 import { ensureCloudPlayer } from '@/yandex/playerCloud'
 
-/** Техническое имя таблицы в консоли Яндекс Игр */
+
 export const LEADERBOARD_NAME = 'catsboard'
 
 export interface LeaderEntry {
@@ -69,7 +69,7 @@ export async function submitLeaderboardScore(score: number): Promise<void> {
   const sdk = getYsdk()
   if (!sdk?.getLeaderboards) {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+
       console.info('[leaderboard] dev stub setScore', LEADERBOARD_NAME, normalized)
     }
     return
@@ -85,7 +85,7 @@ export async function submitLeaderboardScore(score: number): Promise<void> {
   }
 }
 
-/** Отправить локальный рекорд в таблицу Яндекс Игр. */
+
 export async function syncLeaderboardBest(localBest: number): Promise<void> {
   await submitLeaderboardScore(localBest)
 }

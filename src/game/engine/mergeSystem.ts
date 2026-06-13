@@ -55,7 +55,7 @@ export function applyMergeBlast(
 }
 
 export interface MergeOptions {
-  /** Без взрыва, без pop вверх, без очков/колбэков — для continue после рекламы */
+
   silent?: boolean
 }
 

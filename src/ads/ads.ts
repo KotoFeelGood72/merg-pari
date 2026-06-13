@@ -1,6 +1,4 @@
-// Ads orchestration: cooldowns, dev stubs, pause / mute lifecycle.
-// Game loop pause + audio mute are dispatched via window CustomEvents so
-// non-Vue code (this module) doesn't need to import the game/store.
+
 
 import { ref, readonly } from 'vue'
 import {
@@ -11,16 +9,16 @@ import {
   type YsdkRewardedCallbacks,
 } from '@/yandex/sdk'
 
-const FIRST_AD_GAP = 60_000 // no interstitial in first minute (Yandex requirement)
-const INTERSTITIAL_MIN_GAP = 90_000 // our cooldown — 30s stricter than SDK
-const INTER_TO_REWARD_GAP = 30_000 // don't pile ads back-to-back
+const FIRST_AD_GAP = 60_000
+const INTERSTITIAL_MIN_GAP = 90_000
+const INTER_TO_REWARD_GAP = 30_000
 
 export interface InterstitialOptions {
-  /** Явный клик игрока (новая игра, рестарт) — не блокировать FIRST_AD_GAP */
+
   userInitiated?: boolean
-  /** Плановая реклама в геймплее (каждые 2 мин) */
+
   scheduled?: boolean
-  /** Всегда вызывать SDK, без клиентских кулдаунов (рестарт и т.п.) */
+
   forceAttempt?: boolean
 }
 
@@ -30,7 +28,6 @@ let startupAdShown = false
 const adPlaying = ref(false)
 let adBreakBlocking = false
 
-/** Блокировка UI во время отсчёта перед плановой рекламой. */
 export function setAdBreakBlocking(blocked: boolean): void {
   adBreakBlocking = blocked
 }
@@ -62,7 +59,6 @@ function emitResume() {
   window.dispatchEvent(new CustomEvent('ads:resume'))
 }
 
-/** Если SDK не вызвал onClose/onError — не блокировать игру навсегда. */
 function armAdWatchdog(onTimeout: () => void): void {
   clearAdWatchdog()
   adWatchdogId = window.setTimeout(() => {
@@ -78,7 +74,6 @@ export function adsPlaying(): boolean {
   return adPlaying.value
 }
 
-/** Минимальная пауза после любой рекламы перед UI (оценка, подсказки). */
 const UI_AFTER_AD_GAP = 5_000
 
 export function msSinceLastAd(): number {
@@ -86,7 +81,6 @@ export function msSinceLastAd(): number {
   return getServerTime() - lastAnyAdAt
 }
 
-/** Сколько мс ждать до следующего interstitial по общим кулдаунам. */
 export function msUntilInterstitialReady(options?: InterstitialOptions): number {
   if (adPlaying.value) return 500
 
@@ -112,9 +106,6 @@ export function msUntilInterstitialReady(options?: InterstitialOptions): number 
   return wait
 }
 
-/**
- * Выполнить callback, когда реклама не идёт и прошёл буфер после последнего показа.
- */
 export function runWhenSafeFromAds(fn: () => void): void {
   const attempt = () => {
     if (!overlaySafeFromAds()) {
@@ -195,10 +186,6 @@ function createFullscreenCallbacks(onDone: () => void) {
   }
 }
 
-/**
- * Полноэкранная реклама при первом открытии игры в сессии.
- * Не ждёт минутный кулдаун — показывается сразу после загрузки.
- */
 export function showStartupInterstitial(onDone?: () => void): void {
   const finish = () => {
     try {
@@ -219,7 +206,7 @@ export function showStartupInterstitial(onDone?: () => void): void {
   const ysdk = getYsdk()
   if (!ysdk) {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+
       console.info('[ads] startup interstitial (dev stub)')
     }
     finish()
@@ -229,18 +216,10 @@ export function showStartupInterstitial(onDone?: () => void): void {
   showFullscreenAdvSafe(createFullscreenCallbacks(finish), finish)
 }
 
-/**
- * Try to show a fullscreen interstitial. No-op if cooldown is not satisfied
- * or the SDK is unavailable. Always safe to call.
- */
 export function showInterstitial(_reason?: string, options?: InterstitialOptions): void {
   showInterstitialThen(() => {}, _reason, options)
 }
 
-/**
- * Показать полноэкранную рекламу, затем выполнить callback.
- * forceAttempt / userInitiated — всегда вызывают SDK (частоту решает платформа).
- */
 export function showInterstitialThen(
   onDone: () => void,
   reason?: string,
@@ -271,7 +250,7 @@ export function showInterstitialThen(
 
   if (!canShowInterstitial(options)) {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+
       console.info('[ads] interstitial skipped (cooldown)', reason)
     }
     finish()
@@ -281,7 +260,6 @@ export function showInterstitialThen(
   invokeFullscreenInterstitial(finish, reason)
 }
 
-/** Всегда вызывает SDK по клику игрока: без клиентских кулдаунов и без записи в таймеры. */
 function showForcedInterstitialThen(onDone: () => void, reason?: string): void {
   const finish = () => {
     try {
@@ -317,7 +295,7 @@ function showForcedInterstitialThen(onDone: () => void, reason?: string): void {
   const ysdk = getYsdk()
   if (!ysdk) {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+
       console.info('[ads] forced interstitial (dev stub)', reason)
       pauseOnce()
       window.setTimeout(() => {
@@ -341,17 +319,14 @@ function showForcedInterstitialThen(onDone: () => void, reason?: string): void {
   )
 }
 
-/** Полноэкранная реклама по клику — без клиентских кулдаунов (частоту решает SDK). */
 export function showClickInterstitialThen(onDone: () => void, reason?: string): void {
   showForcedInterstitialThen(onDone, reason)
 }
 
-/** Реклама перед рестартом — каждый клик, без клиентского кулдауна. */
 export function showRestartInterstitialThen(onDone: () => void): void {
   showClickInterstitialThen(onDone, 'restart')
 }
 
-/** Реклама перед получением награды — каждый клик, без клиентского кулдауна. */
 export function showRewardClaimInterstitialThen(
   onDone: () => void,
   reason: 'quest_reward' | 'daily_reward' = 'quest_reward',
@@ -359,7 +334,6 @@ export function showRewardClaimInterstitialThen(
   showClickInterstitialThen(onDone, reason)
 }
 
-/** Плановая реклама в геймплее — через общий кулдаун, с ожиданием готовности. */
 export function showScheduledGameplayInterstitialThen(onDone: () => void): void {
   const attempt = (): void => {
     if (adPlaying.value) {
@@ -383,7 +357,7 @@ function invokeFullscreenInterstitial(finish: () => void, reason?: string): void
   const ysdk = getYsdk()
   if (!ysdk) {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+
       console.info('[ads] interstitial (dev stub)', reason)
       emitPause()
       window.setTimeout(() => {
@@ -482,10 +456,6 @@ function showRewardedVideoSafe(callbacks: YsdkRewardedCallbacks, onFail: () => v
   }
 }
 
-/**
- * Show a rewarded video. Reward is delivered ONLY if onRewarded fires.
- * In dev (no SDK), reward is granted immediately for testing.
- */
 export function showRewarded(onReward: () => void): void {
   if (adPlaying.value) {
     window.addEventListener('ads:resume', () => showRewarded(onReward), { once: true })
@@ -495,7 +465,7 @@ export function showRewarded(onReward: () => void): void {
   const ysdk = getYsdk()
   if (!ysdk) {
     if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
+
       console.info('[ads] rewarded (dev stub) — granting immediately')
       onReward()
     }

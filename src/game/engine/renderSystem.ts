@@ -9,7 +9,7 @@ import type { MergeObject } from '@/game/types/physics.types'
 
 const FIELD_TOP = '#243558'
 const FIELD_BOTTOM = '#141e38'
-/** Минимальная вертикальная скорость (px/кадр), при которой показывается шлейф падения */
+
 const MIN_FALL_TRAIL_VELOCITY = 0.8
 
 export function renderFrame(
@@ -116,12 +116,11 @@ interface SpriteRect {
   h: number
 }
 
-/** Квадратные ассеты: кот в пузыре, низ пузыря — у нижней границы кадра */
 const SPRITE_BOTTOM_INSET = 2
 const SPRITE_WIDTH_INSET = 6
-/** Смещение кота вниз относительно низа шара (доля радиуса) */
+
 const SPRITE_DROP_FACTOR = 0.11
-/** Обрезка по кругу пузыря — чуть меньше радиуса, чтобы не вылезало за обводку */
+
 const SPRITE_CLIP_INSET = 1.5
 
 function getBottomAlignedSpriteRect(sprite: HTMLImageElement, radius: number): SpriteRect {
@@ -147,7 +146,6 @@ function clipToBubble(ctx: CanvasRenderingContext2D, radius: number): void {
   ctx.clip()
 }
 
-/** Пунктирная линия падения при прицеливании */
 function drawDropTrajectory(
   ctx: CanvasRenderingContext2D,
   x: number,

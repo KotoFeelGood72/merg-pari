@@ -13,7 +13,7 @@ export function isMobileGameLayout(): boolean {
   return window.matchMedia(`(max-width: ${MOBILE_LAYOUT_MAX_WIDTH}px)`).matches
 }
 
-/** Высота мира под полную ширину слота (пропорции сохраняются). */
+
 export function resolveSlotGameHeight(slotWidth: number, slotHeight: number): number {
   if (slotWidth <= 0 || slotHeight <= 0) {
     return isMobileGameLayout() ? MOBILE_GAME_HEIGHT : GAME_HEIGHT

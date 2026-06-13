@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, provide, ref, shallowRef, watch } from 'vue'
 import gsap from 'gsap'
 
 import AdCountdownModal from '@/components/AdCountdownModal.vue'
@@ -16,9 +16,9 @@ import PauseModal from '@/components/PauseModal.vue'
 import SettingsModal from '@/components/SettingsModal.vue'
 import TutorialModal from '@/components/TutorialModal.vue'
 import VictoryModal from '@/components/VictoryModal.vue'
-import { isHubState } from '@/game/types/game.types'
 import type { GameEngine } from '@/game/engine/GameEngine'
 import { useGameplayInterstitialSchedule } from '@/composables/useGameplayInterstitialSchedule'
+import { gameEngineKey } from '@/composables/useGameEngineRef'
 import {
   showClickInterstitialThen,
   showRestartInterstitialThen,
@@ -35,9 +35,11 @@ const store = useGameStore()
 const player = usePlayerStore()
 
 const showSettings = ref(false)
-const engineRef = ref<GameEngine | null>(null)
+const engineRef = shallowRef<GameEngine | null>(null)
 const gameCanvasRef = ref<InstanceType<typeof GameCanvas> | null>(null)
 const gameScreenRef = ref<HTMLElement | null>(null)
+
+provide(gameEngineKey, engineRef)
 
 const isPlaying = computed(() => store.gameState === 'playing')
 const { showCountdown, countdown, isGameplayBlocked, resetSchedule } =
@@ -93,10 +95,12 @@ watch(
       }
     }
 
-    if (isHubState(state) || ['paused', 'gameOver', 'victory', 'tutorial'].includes(state)) {
-      gameplayPause()
-    } else if (state === 'playing') {
+    const wasPlaying = prev === 'playing'
+    const isPlayingNow = state === 'playing'
+    if (isPlayingNow && !wasPlaying) {
       gameplayResume()
+    } else if (!isPlayingNow && wasPlaying) {
+      gameplayPause()
     }
   },
 )

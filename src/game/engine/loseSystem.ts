@@ -46,7 +46,6 @@ export function getLoseProgress(state: LoseState, now: number): number {
   return Math.min(1, (now - state.loseTimerStartedAt) / LOSE_DELAY_MS)
 }
 
-/** Объект пересёк линию проигрыша сверху вниз (верх шара на уровне линии или ниже) */
 export function hasPassedLoseLine(object: MergeObject): boolean {
   return object.body.position.y - object.radius >= LOSE_LINE_Y
 }

@@ -1,4 +1,4 @@
-/* Тема «Кот Слияние» — уютная комната + деревянные элементы */
+
 
 :root {
   --color-sky: #8ec8f0;
@@ -26,7 +26,7 @@
   --game-column-width: 440px;
   --font-game: 'Rubik', system-ui, sans-serif;
 
-  /* In-game UI — glass + cozy room palette */
+  
   --game-glass: rgba(18, 28, 52, 0.58);
   --game-glass-strong: rgba(12, 20, 42, 0.72);
   --game-glass-border: rgba(255, 255, 255, 0.14);
@@ -36,14 +36,14 @@
   --game-frame-trim: rgba(210, 170, 110, 0.65);
   --game-blur: blur(14px);
 
-  /* Единый UI — модалки, кнопки, панели */
+  
   --game-modal-bg: #1e2642;
   --game-modal-border: rgba(130, 170, 230, 0.22);
   --game-btn-height: 48px;
   --game-btn-radius: 999px;
   --game-panel-radius: 16px;
 
-  /* Хаб — кремовые деревянные панели */
+  
   --hub-panel-bg: linear-gradient(180deg, #fff9ef 0%, #f5e6c8 55%, #edd9b0 100%);
   --hub-panel-bg-soft: linear-gradient(180deg, #fff6e8 0%, #f0dcc0 100%);
   --hub-panel-border: #c49a6c;
@@ -52,7 +52,7 @@
   --hub-text-accent: #40240d;
   --hub-chip-bg: #e8cc9b;
 
-  /* Safe-area и адаптивные размеры */
+  
   --app-safe-top: env(safe-area-inset-top, 0px);
   --app-safe-bottom: env(safe-area-inset-bottom, 0px);
   --app-safe-left: env(safe-area-inset-left, 0px);
@@ -60,7 +60,7 @@
   --app-content-padding-x: 14px;
   --app-content-padding-top: 12px;
   --app-content-padding-bottom: 20px;
-  /* Нижняя навигация: квадратные кнопки (4 шт. в ряд на ~360px) */
+  
   --nav-icon-size: clamp(68px, 21vw, 84px);
   --nav-icon-width: var(--nav-icon-size);
   --nav-icon-height: var(--nav-icon-size);
@@ -68,7 +68,7 @@
   --game-toast-gap: 22px;
 }
 
-/* Фон сцены — на весь экран, без phone frame */
+
 .scene-bg {
   position: relative;
   width: 100%;
@@ -136,7 +136,7 @@
   }
 }
 
-/* Деревянная рамка игрового поля (хаб и пр.) */
+
 .game-frame {
   padding: 10px;
   border-radius: 18px;
@@ -156,7 +156,7 @@
   box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.45);
 }
 
-/* ——— Современный UI игрового экрана ——— */
+
 .game-screen .game-frame {
   flex-shrink: 0;
   width: auto;
@@ -191,7 +191,7 @@
   box-sizing: border-box;
 }
 
-/* HUD игрового экрана — одинаковая высота всех элементов */
+
 .game-screen .game-hud {
   --game-hud-item-height: 38px;
   gap: 6px;
@@ -325,7 +325,7 @@
   padding: 8px 10px 7px;
 }
 
-/* Деревянные таблички и панели хаба */
+
 .wood-plaque {
   padding: 12px 16px;
   border-radius: 18px;
@@ -388,7 +388,7 @@
   background: linear-gradient(90deg, #ffd76a, #e8a830);
 }
 
-/* Превью котика — пузырь + спрайт из assets/game/cats (1.webp … 30.webp) */
+
 .cat-preview {
   position: relative;
   width: 84px;
@@ -440,7 +440,7 @@
   pointer-events: none;
 }
 
-/* Панели и карточки хаба */
+
 .game-panel {
   padding: 14px 16px;
   border-radius: 18px;
@@ -516,7 +516,7 @@
   cursor: not-allowed;
 }
 
-/* Кнопки в стиле макета */
+
 .game-btn {
   display: block;
   width: 100%;
@@ -579,7 +579,7 @@
   font-size: 13px;
 }
 
-/* Главная кнопка «Играть» — глянцевая зелёная таблетка */
+
 .game-play-btn {
   position: relative;
   display: block;
@@ -661,7 +661,7 @@
   pointer-events: none;
 }
 
-/* Глянцевые кнопки действий (пауза и др.) */
+
 .game-action-btn {
   position: relative;
   display: flex;
@@ -825,7 +825,7 @@
     inset 0 -2px 6px rgba(120, 56, 8, 0.2);
 }
 
-/* Монеты */
+
 .coin-badge {
   display: inline-flex;
   align-items: center;
@@ -855,14 +855,14 @@
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 
-/* Хаб — прокручиваемые списки (магазин, коллекция, задания) */
+
 .hub-list-scroll {
   flex: 1 1 0;
   min-height: 0;
   width: 100%;
 }
 
-/* Хаб — шапка */
+
 .hub-header {
   width: 100%;
   min-width: 0;
@@ -908,12 +908,12 @@
   grid-column: 2;
 }
 
-/* Бустеры — слоты в стиле хаба (legacy, основной UI в BoosterPanel.vue) */
+
 .booster-slot {
   position: relative;
 }
 
-/* Модалки — кремовый стиль как пауза */
+
 .game-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1056,7 +1056,7 @@
   transform: scale(0.94);
 }
 
-/* Переключатели в модалках */
+
 .modal-toggles {
   margin-top: 16px;
   display: flex;
@@ -1121,7 +1121,7 @@
   opacity: 0.72;
 }
 
-/* Логотип */
+
 .game-logo {
   margin: 0;
   font-size: clamp(34px, 9vw, 48px);
@@ -1144,7 +1144,7 @@
     0 8px 16px rgba(0, 0, 0, 0.35);
 }
 
-/* Нижняя навигация */
+
 .bottom-nav {
   display: flex;
   justify-content: space-around;
@@ -1203,7 +1203,7 @@
   color: #fff;
 }
 
-/* Тост — компактная деревянная плашка в стиле хаба */
+
 .game-toast {
   position: fixed;
   left: 50%;
@@ -1236,7 +1236,7 @@
   bottom: calc(var(--hub-nav-total-height) + var(--game-toast-gap));
 }
 
-/* ——— Адаптив: узкие и низкие экраны ——— */
+
 @media (max-width: 360px) {
   :root {
     --app-content-padding-x: 10px;

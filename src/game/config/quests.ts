@@ -20,12 +20,11 @@ export interface QuestDef {
   description: string
   metric: QuestMetric
   target: number
-  /** Для create_level_count — какой уровень считать */
+
   levelTarget?: number
   reward: QuestReward
 }
 
-/** GDD §17.1 */
 export const dailyQuests: QuestDef[] = [
   {
     id: 'merge_20',

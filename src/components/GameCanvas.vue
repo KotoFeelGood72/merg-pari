@@ -174,6 +174,7 @@ function createEngine(): GameEngine {
     onLevelUnlocked: (level, combo) => store.unlockLevel(level, combo),
     onBoosterFail: (msg) => store.showToast(msg),
     onBoosterUsed: () => store.onBoosterApplied(),
+    onFieldObjectCount: (count) => store.setFieldObjectCount(count),
     onComboCallout: (callout) => {
       comboCallout.value = callout
     },
@@ -233,11 +234,6 @@ watch(
       engine.pausePhysics()
     }
   },
-)
-
-watch(
-  () => store.boosterMode,
-  (mode) => engine?.setBoosterMode(mode),
 )
 
 watch(

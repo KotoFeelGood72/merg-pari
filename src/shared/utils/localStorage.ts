@@ -12,6 +12,6 @@ export function saveJson(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value))
   } catch {
-    /* ignore quota errors */
+
   }
 }

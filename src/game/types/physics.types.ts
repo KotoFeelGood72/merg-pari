@@ -8,6 +8,6 @@ export interface MergeObject {
   scoreValue: number
   isMerging: boolean
   createdAt: number
-  /** Шлейф при сбросе игроком */
+
   showDropTrail?: boolean
 }

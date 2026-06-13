@@ -10,7 +10,6 @@ export interface CollectionMilestone {
   }
 }
 
-/** GDD §16.1 */
 export const collectionMilestones: CollectionMilestone[] = [
   {
     id: 'col_5',

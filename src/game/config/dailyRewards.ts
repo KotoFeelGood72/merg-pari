@@ -7,7 +7,6 @@ export interface DailyRewardDay {
   booster?: { type: BoosterType; amount: number }
 }
 
-/** GDD §18 — 7-дневный цикл */
 export const dailyRewardCycle: DailyRewardDay[] = [
   { day: 1, label: '100 монет', coins: 100 },
   { day: 2, label: 'Кото-бомба', booster: { type: 'bomb', amount: 1 } },

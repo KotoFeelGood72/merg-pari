@@ -28,12 +28,12 @@ export type BoosterMode = null | 'bomb' | 'rainbow' | 'cookie'
 
 export interface NextObject {
   level: number
-  /** Сглаженная позиция для отрисовки */
+
   x: number
-  /** Целевая позиция (палец / мышь) */
+
   targetX: number
   y: number
-  /** Наклон при движении влево/вправо */
+
   tilt: number
   velocityX: number
 }

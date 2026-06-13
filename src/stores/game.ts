@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 
 import { MAX_CONTINUE_PER_SESSION } from '@/game/config/gameConfig'
 import { getCatByLevel } from '@/game/config/cats'
-import type { BoosterMode, GameState } from '@/game/types/game.types'
+import type { GameState } from '@/game/types/game.types'
 import type { BoosterType } from '@/game/types/booster.types'
 import { usePlayerStore } from '@/stores/playerStore'
 
@@ -15,7 +15,7 @@ export const useGameStore = defineStore('game', () => {
   const combo = ref(1)
   const currentRunCoins = ref(0)
   const nextObjectLevel = ref(1)
-  const boosterMode = ref<BoosterMode>(null)
+  const fieldObjectCount = ref(0)
   const toastMessage = ref<string | null>(null)
   const victoryLevel = ref(0)
   const continueCountThisSession = ref(0)
@@ -39,7 +39,7 @@ export const useGameStore = defineStore('game', () => {
     score.value = 0
     combo.value = 1
     currentRunCoins.value = 0
-    boosterMode.value = null
+    fieldObjectCount.value = 0
     victoryLevel.value = 0
     continueCountThisSession.value = 0
     playerStore.recordGameStart()
@@ -47,7 +47,6 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function goToHub(screen: 'home' | 'shop' | 'collection' | 'tasks' = 'home'): void {
-    boosterMode.value = null
     gameState.value = screen === 'home' ? 'menu' : screen
   }
 
@@ -136,17 +135,8 @@ export const useGameStore = defineStore('game', () => {
     playerStore.recordMerge(level, comboMultiplier)
   }
 
-  function setBoosterMode(mode: BoosterMode): void {
-    boosterMode.value = mode
-  }
-
-  function activateBooster(type: BoosterType): boolean {
-    if (!playerStore.useBooster(type)) {
-      showToast('Бустер закончился')
-      return false
-    }
-    boosterMode.value = type
-    return true
+  function setFieldObjectCount(count: number): void {
+    fieldObjectCount.value = count
   }
 
   function buyBooster(type: BoosterType, price: number): boolean {
@@ -160,7 +150,6 @@ export const useGameStore = defineStore('game', () => {
 
   function onBoosterApplied(): void {
     playerStore.recordBoosterUsed()
-    boosterMode.value = null
   }
 
   function finishTutorial(): void {
@@ -180,8 +169,8 @@ export const useGameStore = defineStore('game', () => {
     coins,
     currentRunCoins,
     nextObjectLevel,
+    fieldObjectCount,
     maxUnlockedLevel,
-    boosterMode,
     toastMessage,
     victoryLevel,
     canContinueWithAd,
@@ -203,9 +192,8 @@ export const useGameStore = defineStore('game', () => {
     addScore,
     addCoins,
     setNextObject,
+    setFieldObjectCount,
     unlockLevel,
-    setBoosterMode,
-    activateBooster,
     buyBooster,
     onBoosterApplied,
     finishTutorial,

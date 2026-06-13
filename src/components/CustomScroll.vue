@@ -4,9 +4,9 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 const props = withDefaults(
   defineProps<{
     maxHeight?: string
-    /** Явная высота (например 100dvh для экрана игры) */
+
     height?: string
-    /** Высота по контенту, но не больше maxHeight (для модалок) */
+
     fitContent?: boolean
   }>(),
   {
@@ -142,7 +142,7 @@ function onThumbPointerUp(e: PointerEvent) {
   try {
     ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
   } catch {
-    /* ignore */
+
   }
 }
 

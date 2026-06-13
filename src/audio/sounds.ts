@@ -1,28 +1,13 @@
-// Reusable audio wrapper for Yandex Games. Routes all sound through the
-// Web Audio API instead of HTMLAudioElement so the game does NOT register
-// with the browser's Media Session (Yandex requirement: no global media
-// controls / lock-screen player). Audio is also auto-suspended when the
-// tab is hidden.
-//
-// Usage in a new game:
-//   1. Drop SFX files somewhere under src/assets and add them to SFX_URLS
-//      below (use `as const` keys → SfxName updates automatically).
-//   2. Tune SFX_VOLUMES / MIN_INTERVAL per sound.
-//   3. (Optional) set a BGM track by assigning bgmUrl to its import.
-//   4. Call preloadAudio() once on startup and unlockAudioOnGesture() to
-//      satisfy autoplay policies.
+
 
 import bgmAssetUrl from '@/assets/audio/fon.wav'
 
-// Map of SFX name → asset URL. Empty by default — add your own sounds.
-// When you add entries, narrow SfxName to `keyof typeof SFX_URLS`.
 export type SfxName = string
 
 const SFX_URLS: Record<SfxName, string> = {}
 
 const SFX_VOLUMES: Record<SfxName, number> = {}
 
-// Minimum gap between repeated plays of the same SFX (ms).
 const MIN_INTERVAL: Record<SfxName, number> = {}
 
 const lastPlayedAt: Record<SfxName, number> = {}
@@ -38,8 +23,6 @@ let masterSfxGain: GainNode | null = null
 const sfxBuffers: Partial<Record<SfxName, AudioBuffer>> = {}
 const sfxLoading: Partial<Record<SfxName, Promise<void>>> = {}
 
-// Set to a URL (e.g. `import bgmUrl from '@/assets/audio/theme.mp3'`) to
-// enable background music. Left null in the template.
 const bgmUrl: string | null = bgmAssetUrl
 
 let bgmBuffer: AudioBuffer | null = null
@@ -110,7 +93,7 @@ function getCtx(): AudioContext | null {
 }
 
 function suppressMediaSession() {
-  // Chrome/Android: explicitly tell the browser we don't want a media session.
+
   const ms = (navigator as any).mediaSession
   if (!ms) return
   try {
@@ -150,7 +133,7 @@ async function loadSfxBuffer(name: SfxName): Promise<void> {
         sfxBuffers[name] = decoded
       })
       .catch(() => {
-        // swallow — sfx just won't play
+
       })
   }
   await sfxLoading[name]
@@ -331,13 +314,11 @@ export function stopMusic() {
   stopBgmSource()
 }
 
-/** Пауза BGM при паузе игры / модалках геймплея. */
 export function pauseMusic() {
   gameMusicPaused = true
   applyAudioLifecycle()
 }
 
-/** Возобновить BGM после снятия игровой паузы. */
 export function resumeMusic() {
   gameMusicPaused = false
   if (musicEnabled && bgmUrl) bgmShouldPlay = true

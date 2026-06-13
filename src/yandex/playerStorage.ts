@@ -5,7 +5,7 @@ export const FLAGS_KEY = 'quadro2048_flags'
 const DEV_LS_KEY = 'quadro-2048-save'
 const DEV_FLAGS_LS = 'quadro-2048-flags'
 
-/** Яндекс SDK: не чаще ~20 запросов setData за 5 минут */
+
 const SET_DATA_MIN_GAP_MS = 15_000
 
 export interface PlayerFlags {
@@ -183,7 +183,7 @@ export async function saveGameProgress(save: GameSaveData, flush = false): Promi
     try {
       localStorage.setItem(DEV_LS_KEY, JSON.stringify(save))
     } catch {
-      /* ignore */
+      
     }
     return
   }
@@ -193,7 +193,7 @@ export async function saveGameProgress(save: GameSaveData, flush = false): Promi
   schedulePlayerWrite(flush)
 }
 
-/** Для dev-mock лидерборда. */
+
 export function loadDevBestScore(): number {
   if (!import.meta.env.DEV) return 0
   try {
@@ -229,7 +229,7 @@ async function saveFlagsRaw(flags: PlayerFlags, flush = false): Promise<void> {
     try {
       localStorage.setItem(DEV_FLAGS_LS, JSON.stringify(flags))
     } catch {
-      /* ignore */
+      
     }
     return
   }

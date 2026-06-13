@@ -152,11 +152,18 @@ export const usePlayerStore = defineStore('player', () => {
         return
       }
     } catch {
-      /* cloud unavailable — local fallback */
+
     }
 
     progress.value = local
     void syncLeaderboardBest(local.bestScore)
+  }
+
+  async function resetProgress(): Promise<void> {
+    progress.value = normalizeProgress({})
+    saveJson(STORAGE_KEY, toRaw(progress.value))
+    saveCatMergeProgress(toRaw(progress.value) as unknown as Record<string, unknown>, true)
+    await flushCatMergeProgress()
   }
 
   function ensureDaily(): void {
@@ -400,6 +407,7 @@ export const usePlayerStore = defineStore('player', () => {
     dailyRewardDayIndex,
     nextDailyReward,
     loadProgress,
+    resetProgress,
     flushProgressNow,
     addCoins,
     spendCoins,

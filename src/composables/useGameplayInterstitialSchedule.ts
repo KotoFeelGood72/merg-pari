@@ -32,15 +32,20 @@ export function useGameplayInterstitialSchedule(isPlaying: Ref<boolean>) {
     }
   }
 
-  function finishBreak(): void {
+  function releaseInterstitialGameplayPause(): void {
+    if (!isGameplayBlocked.value) return
     isGameplayBlocked.value = false
+    gameplayResume()
+  }
+
+  function finishBreak(): void {
     showCountdown.value = false
     countdown.value = 0
     countdownEndsAt = 0
+    releaseInterstitialGameplayPause()
 
     if (isPlaying.value) {
       resumeMusic()
-      gameplayResume()
     }
   }
 
@@ -145,12 +150,10 @@ export function useGameplayInterstitialSchedule(isPlaying: Ref<boolean>) {
     countdown.value = 0
     countdownEndsAt = 0
 
-    if (isGameplayBlocked.value) {
-      isGameplayBlocked.value = false
-      if (isPlaying.value) {
-        resumeMusic()
-        gameplayResume()
-      }
+    const wasBlocked = isGameplayBlocked.value
+    releaseInterstitialGameplayPause()
+    if (wasBlocked && isPlaying.value) {
+      resumeMusic()
     }
 
     scheduleNext()
@@ -163,10 +166,7 @@ export function useGameplayInterstitialSchedule(isPlaying: Ref<boolean>) {
     countdown.value = 0
     countdownEndsAt = 0
     nextAdAt = 0
-
-    if (isGameplayBlocked.value) {
-      isGameplayBlocked.value = false
-    }
+    releaseInterstitialGameplayPause()
   }
 
   function pauseSchedule(): void {
@@ -175,10 +175,7 @@ export function useGameplayInterstitialSchedule(isPlaying: Ref<boolean>) {
     showCountdown.value = false
     countdown.value = 0
     countdownEndsAt = 0
-
-    if (isGameplayBlocked.value) {
-      isGameplayBlocked.value = false
-    }
+    releaseInterstitialGameplayPause()
   }
 
   watch(isPlaying, (playing, wasPlaying) => {

@@ -13,7 +13,6 @@ function getReferenceLevel(ctx: SpawnContext): number {
   return Math.max(ctx.maxUnlockedLevel, ctx.fieldMaxLevel)
 }
 
-/** Диапазон выпадения — растёт медленнее, с жёстким потолком из balanceConfig */
 export function getSpawnBounds(ctx: SpawnContext): { min: number; max: number } {
   const ref = getReferenceLevel(ctx)
   const unlocked = Math.max(1, ctx.maxUnlockedLevel)
@@ -28,7 +27,6 @@ export function getSpawnBounds(ctx: SpawnContext): { min: number; max: number } 
   return { min: 1, max: Math.max(1, max) }
 }
 
-/** Уровень 1 + уже созданные слиянием в сессии + последние открытые */
 export function getAllowedSpawnLevels(ctx: SpawnContext): number[] {
   const { min, max } = getSpawnBounds(ctx)
   const allowed = new Set<number>()
@@ -50,7 +48,6 @@ export function getAllowedSpawnLevels(ctx: SpawnContext): number[] {
   return list.length > 0 ? list : [1]
 }
 
-/** Уровни с нечётным количеством на поле — нужна пара для слияния */
 export function getLevelsNeedingPair(
   allowed: number[],
   counts: FieldLevelCounts,
@@ -76,11 +73,6 @@ function pickWeightedLevel(candidates: { level: number; weight: number }[]): num
   return candidates[candidates.length - 1]!.level
 }
 
-/**
- * Упрощённый спавн:
- * 1. Если на поле одиночка — с высокой вероятностью даём пару.
- * 2. Иначе — в основном 1–2 уровень, реже 3+.
- */
 export function getWeightedSpawnLevel(ctx: SpawnContext): number {
   const allowed = getAllowedSpawnLevels(ctx)
   if (allowed.length === 1) return allowed[0]!
@@ -92,7 +84,7 @@ export function getWeightedSpawnLevel(ctx: SpawnContext): number {
       const count = ctx.fieldCounts[level] ?? 0
       return {
         level,
-        // Чем дольше одиночка ждёт — тем выше шанс (но мелкие уровни приоритетнее)
+
         weight: 6 - level * 0.35 + Math.min(count, 3) * 0.5,
       }
     })

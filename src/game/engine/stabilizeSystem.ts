@@ -19,7 +19,6 @@ export function resetObjectsAge(objects: MergeObject[], now = Date.now()): void 
   }
 }
 
-/** Сдвигает всю кучу вниз к полу, сохраняя форму. */
 export function alignFieldToFloor(objects: MergeObject[], gameHeight = GAME_HEIGHT): void {
   if (objects.length === 0) return
 

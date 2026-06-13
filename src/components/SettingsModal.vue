@@ -8,6 +8,7 @@ import IconVolumeOff from '~icons/mdi/volume-off'
 
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { useGsapModal } from '@/composables/useGsapModal'
+import { useGameStore } from '@/stores/game'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 
@@ -15,6 +16,7 @@ const props = defineProps<{ show: boolean }>()
 
 const settings = useSettingsStore()
 const player = usePlayerStore()
+const game = useGameStore()
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -30,10 +32,11 @@ function requestReset(): void {
   showResetConfirm.value = true
 }
 
-function confirmReset(): void {
+async function confirmReset(): Promise<void> {
   showResetConfirm.value = false
+  await player.resetProgress()
   settings.resetProgress()
-  player.loadProgress()
+  game.goToMenu()
   emit('close')
 }
 

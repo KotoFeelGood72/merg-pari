@@ -33,7 +33,6 @@ export function getLevelDef(level: number): ObjectLevelDef {
   }
 }
 
-/** GDD §22.1 */
 export function getCoinsForMerge(level: number): number {
   return Math.max(1, Math.floor(level / 2))
 }

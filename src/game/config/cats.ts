@@ -19,7 +19,6 @@ export interface CatCatalogEntry {
   score: number
 }
 
-/** Базовый размер шара; радиусы из balanceConfig для большего места на поле */
 export const MIN_OBJECT_RADIUS = balanceConfig.minObjectRadius
 export const MAX_OBJECT_RADIUS = balanceConfig.maxObjectRadius
 const TOTAL_CATALOG_LEVELS = 30
@@ -31,7 +30,6 @@ function catalogRadius(level: number): number {
   return Math.round(MIN_OBJECT_RADIUS + progress * (MAX_OBJECT_RADIUS - MIN_OBJECT_RADIUS))
 }
 
-/** 30 уровней — спрайты 1.webp … 30.webp */
 export const catCatalog: CatCatalogEntry[] = [
   {
     level: 1,

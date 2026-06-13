@@ -1,6 +1,5 @@
 import { MAX_LEVEL } from '@/game/config/objectLevels'
 
-/** Файлы в assets/game/cats: 1.webp … 30.webp ↔ игровые уровни 1 … 30 */
 export const CAT_SPRITE_FIRST = 1
 export const CAT_SPRITE_LAST = MAX_LEVEL
 

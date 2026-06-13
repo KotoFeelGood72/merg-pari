@@ -8,7 +8,6 @@ export interface ShopItem {
   description: string
 }
 
-/** GDD §19.2 */
 export const shopItems: ShopItem[] = [
   {
     id: 'bomb',

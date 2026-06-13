@@ -54,13 +54,12 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function resetProgress(): void {
-    localStorage.removeItem('cat-merge-player')
-    localStorage.removeItem('cat-merge-settings')
     soundEnabled.value = defaults.soundEnabled
     musicEnabled.value = defaults.musicEnabled
     vibrationEnabled.value = defaults.vibrationEnabled
     setSfxEnabled(soundEnabled.value)
     setMusicEnabled(musicEnabled.value)
+    localStorage.removeItem(STORAGE_KEY)
   }
 
   return {

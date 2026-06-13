@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import adIcon from '@/assets/ui/modals/ad.webp'
 import boosterBomb from '@/assets/ui/boosters/booster-1.webp'
 import boosterRainbow from '@/assets/ui/boosters/booster-2.webp'
 import boosterCookie from '@/assets/ui/boosters/booster-3.webp'
 import { showRewarded } from '@/ads/ads'
+import { useGameEngineRef } from '@/composables/useGameEngineRef'
 import type { BoosterType } from '@/game/types/booster.types'
 import { useGsapSlideEnter, useGsapStaggerEnter } from '@/composables/useGsapEnter'
 import { useGameStore } from '@/stores/game'
@@ -13,6 +14,7 @@ import { usePlayerStore } from '@/stores/playerStore'
 
 const store = useGameStore()
 const player = usePlayerStore()
+const engineRef = useGameEngineRef()
 
 const boosters: { type: BoosterType; icon: string; label: string; hint: string }[] = [
   { type: 'bomb', icon: boosterBomb, label: 'Бомба', hint: 'Удаляет объект' },
@@ -24,16 +26,30 @@ const barRef = ref<HTMLElement | null>(null)
 useGsapSlideEnter(barRef, 'bottom', 0.1)
 useGsapStaggerEnter(barRef, '.booster-slot', { y: 14, stagger: 0.08, delay: 0.22 })
 
+const canUseBoosters = computed(() => store.fieldObjectCount > 0)
+
 function boosterCount(type: BoosterType): number {
   return player.progress.boosters[type]
 }
 
 function activate(type: BoosterType): void {
-  if (store.boosterMode === type) {
-    store.setBoosterMode(null)
+  const engine = engineRef.value
+  if (!engine) return
+
+  const blockReason = engine.getBoosterBlockReason(type)
+  if (blockReason) {
+    store.showToast(blockReason)
     return
   }
-  store.activateBooster(type)
+
+  if (!player.useBooster(type)) {
+    store.showToast('Бустер закончился')
+    return
+  }
+
+  if (!engine.applyBooster(type)) {
+    player.addBooster(type, 1)
+  }
 }
 
 const receivedMessages: Record<BoosterType, string> = {
@@ -68,7 +84,7 @@ function onSlotClick(type: BoosterType): void {
         type="button"
         class="booster-slot"
         :class="{
-          'booster-slot--active': store.boosterMode === b.type,
+          'booster-slot--disabled': boosterCount(b.type) > 0 && !canUseBoosters,
           'booster-slot--ad': boosterCount(b.type) <= 0,
         }"
         :aria-label="
@@ -129,13 +145,9 @@ function onSlotClick(type: BoosterType): void {
   filter: brightness(1.03);
 }
 
-.booster-slot--active {
-  border-color: #2a9e3a;
-  background: linear-gradient(180deg, #eefce8 0%, #d4efbc 100%);
-  box-shadow:
-    0 0 0 2px rgba(42, 158, 58, 0.28),
-    inset 0 2px 5px rgba(255, 255, 255, 0.72),
-    0 3px 10px rgba(42, 158, 58, 0.2);
+.booster-slot--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .booster-slot--ad {

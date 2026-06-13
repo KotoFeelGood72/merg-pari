@@ -2,7 +2,7 @@ import { getYsdk, initYandex, type YsdkPlayer } from '@/yandex/sdk'
 
 export const CAT_MERGE_SAVE_KEY = 'cat_merge_progress'
 
-/** Яндекс SDK: не чаще ~20 запросов setData за 5 минут */
+
 const SET_DATA_MIN_GAP_MS = 15_000
 
 let cachedPlayer: YsdkPlayer | null = null
@@ -14,7 +14,7 @@ let writeTimer: ReturnType<typeof setTimeout> | null = null
 let lastSetDataAt = 0
 let writeInFlight = false
 
-/** SDK шлёт данные в parent через structured clone — только plain JSON. */
+
 function toPlainRecord(value: Record<string, unknown>): Record<string, unknown> {
   return JSON.parse(JSON.stringify(value)) as Record<string, unknown>
 }

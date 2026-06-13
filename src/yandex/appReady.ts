@@ -2,7 +2,7 @@ import { getLang, getYsdk, gameplayInit } from '@/yandex/sdk'
 
 let readyCalled = false
 
-/** Сигнал платформе: игра загружена, игрок может начать. Вызывать после прогресса и UI. */
+
 export function markAppReady(): void {
   if (readyCalled) return
   readyCalled = true
@@ -12,7 +12,7 @@ export function markAppReady(): void {
   try {
     getYsdk()?.features?.LoadingAPI?.ready()
   } catch {
-    /* ignore */
+    
   }
 
   gameplayInit()

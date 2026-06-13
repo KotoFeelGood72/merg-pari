@@ -1,3 +1,4 @@
+import type { BoosterType } from '@/game/types/booster.types'
 import type { MergeObject } from '@/game/types/physics.types'
 
 export function findNearestSameLevelObject(
@@ -45,4 +46,38 @@ export function getTopObjects(objects: MergeObject[], count: number): MergeObjec
   return [...objects]
     .sort((a, b) => a.body.position.y - b.body.position.y)
     .slice(0, count)
+}
+
+export function pickTopObject(objects: MergeObject[]): MergeObject | null {
+  return getTopObjects(objects, 1)[0] ?? null
+}
+
+export function pickCookieTarget(objects: MergeObject[]): MergeObject | null {
+  const candidates = objects.filter((obj) => obj.level > 1 && !obj.isMerging)
+  if (candidates.length === 0) return null
+
+  return candidates.sort((a, b) => {
+    if (b.level !== a.level) return b.level - a.level
+    return a.body.position.y - b.body.position.y
+  })[0] ?? null
+}
+
+export function getBoosterBlockReason(
+  type: BoosterType,
+  objects: MergeObject[],
+  findPair: (objects: MergeObject[]) => [MergeObject, MergeObject] | null,
+): string | null {
+  if (objects.length === 0) {
+    return 'Сначала бросьте котика'
+  }
+
+  if (type === 'rainbow' && !findPair(objects)) {
+    return 'Нет подходящей пары'
+  }
+
+  if (type === 'cookie' && !pickCookieTarget(objects)) {
+    return 'Нет объекта для понижения'
+  }
+
+  return null
 }

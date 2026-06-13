@@ -22,14 +22,16 @@ import { balanceConfig } from '@/game/config/balanceConfig'
 import { createPhysicsWorld } from '@/game/engine/createPhysicsWorld'
 import { canMerge, mergeObjects, type MergeCallbacks } from '@/game/engine/mergeSystem'
 import { checkLoseCondition, getLoseProgress, type LoseState } from '@/game/engine/loseSystem'
-import { findNearestSameLevelObject, findObjectAtPoint } from '@/game/engine/boosterSystem'
+import { findMergeablePair } from '@/game/engine/continueMergeSystem'
+import { getBoosterBlockReason, pickCookieTarget, pickTopObject } from '@/game/engine/boosterSystem'
 import { reduceObjectsByMerging } from '@/game/engine/continueMergeSystem'
 import { getLevelDef } from '@/game/config/objectLevels'
 import { mergeBoomPlayer } from '@/game/effects/mergeBoomPlayer'
 import { createMergeObject, resetObjectIdCounter } from '@/game/engine/objectFactory'
 import { renderFrame } from '@/game/engine/renderSystem'
 import { alignFieldToFloor, wakeAllObjects, zeroAllVelocities, resetObjectsAge } from '@/game/engine/stabilizeSystem'
-import type { BoosterMode, NextObject, ScorePopup } from '@/game/types/game.types'
+import type { NextObject, ScorePopup } from '@/game/types/game.types'
+import type { BoosterType } from '@/game/types/booster.types'
 import type { MergeObject } from '@/game/types/physics.types'
 import { clamp } from '@/shared/utils/clamp'
 import { getRandomSpawnLevel } from '@/shared/utils/random'
@@ -43,6 +45,7 @@ export interface GameEngineCallbacks {
   onLevelUnlocked: (level: number, comboMultiplier: number) => void
   onBoosterFail: (message: string) => void
   onBoosterUsed: () => void
+  onFieldObjectCount: (count: number) => void
   onComboCallout: (callout: { text: string; combo: number; createdAt: number }) => void
 }
 
@@ -70,7 +73,6 @@ export class GameEngine {
   private maxUnlockedLevel = 1
   /** Уровни, созданные слиянием в текущей партии — только их можно сбрасывать сверху */
   private sessionMergedLevels = new Set<number>()
-  private boosterMode: BoosterMode = null
 
   private animationFrameId: number | null = null
   private lastTime = 0
@@ -104,8 +106,40 @@ export class GameEngine {
     this.maxUnlockedLevel = level
   }
 
-  setBoosterMode(mode: BoosterMode): void {
-    this.boosterMode = mode
+  hasFieldObjects(): boolean {
+    return this.objects.length > 0
+  }
+
+  getBoosterBlockReason(type: BoosterType): string | null {
+    return getBoosterBlockReason(type, this.objects, findMergeablePair)
+  }
+
+  applyBooster(type: BoosterType): boolean {
+    const blockReason = this.getBoosterBlockReason(type)
+    if (blockReason) {
+      this.callbacks.onBoosterFail(blockReason)
+      return false
+    }
+
+    if (type === 'bomb') {
+      const target = pickTopObject(this.objects)
+      if (!target) return false
+      this.removeObject(target)
+    } else if (type === 'cookie') {
+      const target = pickCookieTarget(this.objects)
+      if (!target) return false
+      const { x, y } = target.body.position
+      this.removeObject(target)
+      const smaller = this.spawnObject(target.level - 1, x, y)
+      Matter.Body.setVelocity(smaller.body, { x: 0, y: -2 })
+    } else if (type === 'rainbow') {
+      const pair = findMergeablePair(this.objects)
+      if (!pair) return false
+      this.performMerge(pair[0], pair[1])
+    }
+
+    this.callbacks.onBoosterUsed()
+    return true
   }
 
   getObjects(): readonly MergeObject[] {
@@ -166,6 +200,7 @@ export class GameEngine {
     this.bodyObjectMap.clear()
     mergeBoomPlayer.clear()
     this.sessionMergedLevels.clear()
+    this.notifyFieldObjectCount()
     this.scorePopups = []
     this.protectionUntil = 0
     this.loseState = { loseTimerStartedAt: null }
@@ -263,19 +298,13 @@ export class GameEngine {
       this.scorePopups,
       this.getLoseProgress(now),
       now,
-      this.isDragging && !this.boosterMode,
+      this.isDragging,
       this.gameHeight,
     )
   }
 
   handlePointerDown(x: number, y: number): void {
     if (this.isPhysicsPaused || !this.canDrop) return
-
-    if (this.boosterMode) {
-      this.handleBoosterClick(x, y)
-      return
-    }
-
     if (!this.nextObject) return
     this.isDragging = true
     this.showPreview = true
@@ -288,7 +317,7 @@ export class GameEngine {
 
   private aimPreview(x: number): void {
     this.lastPointerX = x
-    if (this.isPhysicsPaused || this.boosterMode || !this.nextObject || !this.showPreview) return
+    if (this.isPhysicsPaused || !this.nextObject || !this.showPreview) return
     const radius = getLevelDef(this.nextObject.level).radius
     this.nextObject.targetX = clamp(x, radius, GAME_WIDTH - radius)
   }
@@ -324,41 +353,6 @@ export class GameEngine {
     this.awaitingDropSince = Date.now()
     this.dropCleared = false
     this.nextPreviewReadyAt = Date.now() + NEXT_PREVIEW_DELAY_MS
-  }
-
-  private handleBoosterClick(x: number, y: number): void {
-    const target = findObjectAtPoint(this.objects, x, y)
-    if (!target) return
-
-    if (this.boosterMode === 'bomb') {
-      this.removeObject(target)
-      this.boosterMode = null
-      this.callbacks.onBoosterUsed()
-      return
-    }
-
-    if (this.boosterMode === 'cookie') {
-      const { x, y } = target.body.position
-      this.removeObject(target)
-      if (target.level > 1) {
-        const smaller = this.spawnObject(target.level - 1, x, y)
-        Matter.Body.setVelocity(smaller.body, { x: 0, y: -2 })
-      }
-      this.boosterMode = null
-      this.callbacks.onBoosterUsed()
-      return
-    }
-
-    if (this.boosterMode === 'rainbow') {
-      const nearest = findNearestSameLevelObject(target, this.objects)
-      if (!nearest) {
-        this.callbacks.onBoosterFail('Нет подходящей пары')
-        return
-      }
-      this.boosterMode = null
-      this.callbacks.onBoosterUsed()
-      this.performMerge(target, nearest)
-    }
   }
 
   private setupCollisions(): void {
@@ -452,6 +446,7 @@ export class GameEngine {
     Matter.World.add(this.world, obj.body)
     this.objects.push(obj)
     this.bodyObjectMap.set(obj.body.id, obj)
+    this.notifyFieldObjectCount()
     return obj
   }
 
@@ -576,6 +571,11 @@ export class GameEngine {
     Matter.World.remove(this.world, object.body)
     this.bodyObjectMap.delete(object.body.id)
     this.objects = this.objects.filter((o) => o.id !== object.id)
+    this.notifyFieldObjectCount()
+  }
+
+  private notifyFieldObjectCount(): void {
+    this.callbacks.onFieldObjectCount(this.objects.length)
   }
 
   private addScorePopup(x: number, y: number, text: string): void {

@@ -7,7 +7,6 @@ const BOOM_DURATION_MS = 1000
 const BOOM_MIN_SCALE = 1.6
 const BOOM_MAX_SCALE = 3.8
 
-/** Убираем центральный расширяющийся круг — оставляем звёзды и частицы */
 const BOOM_ANIMATION = prepareBoomAnimation(boomAnimation)
 
 function prepareBoomAnimation(data: Record<string, unknown>): Record<string, unknown> {
