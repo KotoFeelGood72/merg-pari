@@ -74,9 +74,19 @@ function onPointerUp(e: PointerEvent): void {
   engine.handlePointerUp()
   try {
     canvasRef.value?.releasePointerCapture(e.pointerId)
-  } catch {
-    /* ignore */
-  }
+  } catch {}
+}
+
+function setupCanvasContext(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
+  const worldWidth = getGameWidth()
+  const worldHeight = getGameHeight()
+  const dpr = Math.min(window.devicePixelRatio || 1, 3)
+
+  canvas.width = Math.round(worldWidth * dpr)
+  canvas.height = Math.round(worldHeight * dpr)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
 }
 
 function applyCanvasLayout(): void {
@@ -107,10 +117,12 @@ function applyCanvasLayout(): void {
   frame.style.maxHeight = 'none'
 
   const ctx = canvas.getContext('2d')
-  if (ctx && engine) {
-    engine.render(ctx)
+  if (ctx) {
+    setupCanvasContext(canvas, ctx)
+    if (engine) {
+      engine.render(ctx)
+    }
   }
-
 }
 
 function scheduleCanvasLayout(): void {
@@ -167,18 +179,18 @@ function renderLoop(): void {
 function createEngine(): GameEngine {
   return new GameEngine(
     {
-    onScore: (points, combo) => store.addScore(points, combo),
-    onCoins: (amount) => store.addCoins(amount),
-    onGameOver: () => store.gameOver(),
-    onVictory: (level) => store.showVictory(level),
-    onLevelUnlocked: (level, combo) => store.unlockLevel(level, combo),
-    onBoosterFail: (msg) => store.showToast(msg),
-    onBoosterUsed: () => store.onBoosterApplied(),
-    onFieldObjectCount: (count) => store.setFieldObjectCount(count),
-    onComboCallout: (callout) => {
-      comboCallout.value = callout
+      onScore: (points, combo) => store.addScore(points, combo),
+      onCoins: (amount) => store.addCoins(amount),
+      onGameOver: () => store.gameOver(),
+      onVictory: (level) => store.showVictory(level),
+      onLevelUnlocked: (level, combo) => store.unlockLevel(level, combo),
+      onBoosterFail: (msg) => store.showToast(msg),
+      onBoosterUsed: () => store.onBoosterApplied(),
+      onFieldObjectCount: (count) => store.setFieldObjectCount(count),
+      onComboCallout: (callout) => {
+        comboCallout.value = callout
+      },
     },
-  },
     getGameHeight(),
   )
 }
@@ -192,8 +204,6 @@ onMounted(async () => {
   const slot = playSlotRef.value
   initGameViewport(slot?.clientWidth, slot?.clientHeight)
   gameWorldHeight.value = getGameHeight()
-  canvas.width = getGameWidth()
-  canvas.height = getGameHeight()
 
   await Promise.all([preloadCatSprites(), fallEffectPlayer.preload()])
 

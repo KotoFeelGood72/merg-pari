@@ -71,7 +71,6 @@ export class GameEngine {
   private lastMergeAt = 0
 
   private maxUnlockedLevel = 1
-  /** Уровни, созданные слиянием в текущей партии — только их можно сбрасывать сверху */
   private sessionMergedLevels = new Set<number>()
 
   private animationFrameId: number | null = null
@@ -265,7 +264,6 @@ export class GameEngine {
     this.aimPreview(this.lastPointerX)
   }
 
-  /** Новый Matter.Engine — чистая физика без «битого» состояния после паузы/рекламы. */
   private restartPhysicsWorld(): void {
     this.teardownCollisions()
     Matter.Engine.clear(this.engine)
@@ -421,7 +419,6 @@ export class GameEngine {
     )
   }
 
-  /** Автослияние после continue — без blast, pop вверх и игровых колбэков. */
   private performSilentMerge(objectA: MergeObject, objectB: MergeObject): void {
     mergeObjects(
       objectA,
@@ -450,7 +447,6 @@ export class GameEngine {
     return obj
   }
 
-  /** DEV: быстро наполнить поле кучей для тестов (continue, game over). */
   fillFieldForTest(): void {
     const count = 22
     const maxLevel = Math.min(6, Math.max(3, this.maxUnlockedLevel))

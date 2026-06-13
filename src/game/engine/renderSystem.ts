@@ -68,11 +68,7 @@ function drawFieldBackground(ctx: CanvasRenderingContext2D, gameHeight: number):
   ctx.fillRect(0, 0, GAME_WIDTH, gameHeight)
 }
 
-function drawScorePopup(
-  ctx: CanvasRenderingContext2D,
-  popup: ScorePopup,
-  now: number,
-): void {
+function drawScorePopup(ctx: CanvasRenderingContext2D, popup: ScorePopup, now: number): void {
   const age = now - popup.createdAt
   const duration = 900
   if (age >= duration) return
